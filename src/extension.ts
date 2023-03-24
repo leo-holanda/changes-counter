@@ -11,26 +11,31 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(changesQuantityBarItem);
 
   if (vscode.workspace.workspaceFolders) {
-    const shortstat = spawn("git", ["diff", "HEAD", "HEAD~1", "--shortstat"], {
+    const diffHEAD = spawn("git", ["diff", "HEAD", "--shortstat"], {
       cwd: vscode.workspace.workspaceFolders[0].uri.path,
     });
 
-    shortstat.stdout.on("data", (data: any) => {
-      const splittedDiffOutput = data.toString().split(", ");
-      const insertions = +splittedDiffOutput[1][0];
-      const deletions = +splittedDiffOutput[2][0];
-      const changesQuantity = insertions + deletions;
-      changesQuantityBarItem.text = "Changes: " + changesQuantity.toString();
+    diffHEAD.stdout.on("data", (data: Buffer) => {
+      changesQuantityBarItem.text = "Changes: " + parseChangesQuantity(data);
     });
 
-    shortstat.stderr.on("data", (data: any) => {
+    diffHEAD.stderr.on("data", (data: any) => {
       console.error(`stderr: ${data}`);
     });
 
-    shortstat.on("close", (code: any) => {
+    diffHEAD.on("close", (code: any) => {
       console.log(`child process exited with code ${code}`);
     });
   }
 }
 
 export function deactivate() {}
+
+function parseChangesQuantity(diffOutput: Buffer): string {
+  const splittedDiffOutput = diffOutput.toString().split(", ");
+  const insertions = +splittedDiffOutput[1].split(" ")[0];
+  const deletions = +splittedDiffOutput[2].split(" ")[0];
+  const changesQuantity = insertions + deletions;
+
+  return changesQuantity.toString();
+}
