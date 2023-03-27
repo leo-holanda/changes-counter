@@ -26,6 +26,8 @@ export async function activate(context: vscode.ExtensionContext) {
     changesQuantityBarItem.text = "Changes: ?";
   }
   changesQuantityBarItem.show();
+
+  registerSetTargetBranchCommand(context);
 }
 
 async function checkIfGitIsInitiated(): Promise<boolean> {
@@ -79,6 +81,59 @@ async function getChangesCount(targetBranch: string): Promise<string> {
       resolve(changesCount);
     });
   });
+}
+
+async function getAvaliableBranches(): Promise<string[]> {
+  return new Promise((resolve, reject) => {
+    let avaliableBranches: string[];
+
+    const getAllBranches = spawn("git", ["branch", "-a"], {
+      cwd: vscode.workspace.workspaceFolders![0].uri.path,
+    });
+
+    getAllBranches.stdout.on("data", (data: Buffer) => {
+      const branchesList = data.toString().split(/\r?\n/);
+      let validBranches = branchesList.filter(
+        (branch) => branch && branch[0] !== "*"
+      );
+      validBranches = branchesList.map((branch) => branch.trim());
+      avaliableBranches = validBranches;
+    });
+
+    getAllBranches.stderr.on("data", (data: any) => {
+      reject([]);
+    });
+
+    getAllBranches.on("close", (code: any) => {
+      resolve(avaliableBranches);
+    });
+  });
+}
+
+function registerSetTargetBranchCommand(
+  context: vscode.ExtensionContext
+): void {
+  const setTargetBranchCommand = vscode.commands.registerCommand(
+    "changed-lines-count.setTargetBranch",
+    async () => {
+      const targetBranchQuickPick = vscode.window.createQuickPick();
+      targetBranchQuickPick.title = "Choose a target branch";
+
+      const avaliableBranches = await getAvaliableBranches();
+      targetBranchQuickPick.items = avaliableBranches.map((branch) => {
+        return { label: branch };
+      });
+
+      targetBranchQuickPick.onDidChangeSelection((selection) => {
+        context.workspaceState.update("targetBranch", selection[0].label);
+        targetBranchQuickPick.dispose();
+      });
+
+      targetBranchQuickPick.show();
+    }
+  );
+
+  context.subscriptions.push(setTargetBranchCommand);
 }
 
 export function deactivate() {}
