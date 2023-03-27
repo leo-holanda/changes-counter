@@ -21,24 +21,42 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(changesQuantityBarItem);
 
+  const storedChangesQuantityThreshold =
+    context.workspaceState.get<string>("quantityThreshold");
   const storedTargetBranch = context.workspaceState.get<string>("targetBranch");
   if (storedTargetBranch) {
     const currentChangesCount = await getChangesCount(storedTargetBranch);
     setCounter(currentChangesCount, changesQuantityBarItem);
-    changesQuantityBarItem.tooltip = getTooltipString(storedTargetBranch);
+    changesQuantityBarItem.tooltip = getTooltipString(
+      storedTargetBranch,
+      storedChangesQuantityThreshold
+    );
   } else {
     setCounter("?", changesQuantityBarItem);
-    changesQuantityBarItem.tooltip = getTooltipString(undefined);
+    changesQuantityBarItem.tooltip = getTooltipString(
+      undefined,
+      storedChangesQuantityThreshold
+    );
   }
   changesQuantityBarItem.show();
 
   context.subscriptions.push(createTargetBranchCommand());
+  context.subscriptions.push(createQuantityThresholdSetterCommand());
 
   eventEmitter.on("updateTargetBranch", async (newTargetBranch) => {
     context.workspaceState.update("targetBranch", newTargetBranch);
     const currentChangesCount = await getChangesCount(newTargetBranch);
     changesQuantityBarItem.tooltip = getTooltipString(newTargetBranch);
     setCounter(currentChangesCount, changesQuantityBarItem);
+  });
+
+  eventEmitter.on("updateQuantityThreshold", async (newQuantityThreshold) => {
+    context.workspaceState.update("quantityThreshold", newQuantityThreshold);
+    const targetBranch = context.workspaceState.get<string>("targetBranch");
+    changesQuantityBarItem.tooltip = getTooltipString(
+      targetBranch,
+      newQuantityThreshold
+    );
   });
 }
 
@@ -151,24 +169,62 @@ function createTargetBranchCommand(): vscode.Disposable {
   );
 }
 
-function getTooltipString(targetBranch?: string): vscode.MarkdownString {
+function getTooltipString(
+  targetBranch?: string,
+  quantityThreshold?: string
+): vscode.MarkdownString {
   const setBranchTargetCommandURI = vscode.Uri.parse(
     `command:changed-lines-count.setTargetBranch`
+  );
+  const getQuantityThresholdCommandURI = vscode.Uri.parse(
+    `command:changed-lines-count.setQuantityThreshold`
   );
   const markdownTooltip = new vscode.MarkdownString();
 
   if (targetBranch) {
     markdownTooltip.appendMarkdown(
-      `$(git-branch) Current Target Branch: <strong>${targetBranch}</strong>`
+      `$(git-branch) <strong>Current Target Branch</strong> <br> ${targetBranch}`
     );
   } else {
     markdownTooltip.appendMarkdown(
-      `$(error) Current Target Branch: <strong>Undefined</strong> <br> Please, select a target branch.`
+      `$(git-branch) <strong>Current Target Branch</strong> <br> Undefined`
     );
   }
 
+  markdownTooltip.appendMarkdown("<br>");
+
+  if (quantityThreshold) {
+    markdownTooltip.appendMarkdown(
+      `$(arrow-both) <strong>Quantity Threshold</strong> <br> ${quantityThreshold} changes`
+    );
+  } else {
+    markdownTooltip.appendMarkdown(
+      `$(arrow-both) <strong>Quantity Threshold</strong> <br> Undefined`
+    );
+  }
+
+  markdownTooltip.appendMarkdown("<br>");
+
+  if (!targetBranch) {
+    markdownTooltip.appendMarkdown("<br>");
+    markdownTooltip.appendMarkdown(`$(alert) Set a target branch.`);
+  }
+
+  if (!quantityThreshold) {
+    markdownTooltip.appendMarkdown("<br>");
+    markdownTooltip.appendMarkdown(`$(alert) Set a quantity threshold.`);
+  }
+
   markdownTooltip.appendMarkdown(
-    `<hr><br> $(refresh) [Change Target Branch](${setBranchTargetCommandURI})`
+    `<hr><br> $(edit) [${
+      targetBranch ? "Change" : "Set"
+    } Target Branch](${setBranchTargetCommandURI}) <br>`
+  );
+
+  markdownTooltip.appendMarkdown(
+    `$(edit) [${
+      quantityThreshold ? "Change" : "Set"
+    } Quantity Threshold](${getQuantityThresholdCommandURI})`
   );
 
   markdownTooltip.isTrusted = true;
@@ -176,6 +232,28 @@ function getTooltipString(targetBranch?: string): vscode.MarkdownString {
   markdownTooltip.supportHtml = true;
 
   return markdownTooltip;
+}
+
+function createQuantityThresholdSetterCommand(): vscode.Disposable {
+  return vscode.commands.registerCommand(
+    "changed-lines-count.setQuantityThreshold",
+    async () => {
+      const quantityThreshold = await vscode.window.showInputBox({
+        title: "Insert the changes quantity alert threshold",
+        value: "250",
+        prompt: "Only positive numbers are allowed.",
+        validateInput: (value) => {
+          if (+value && +value > 0) {
+            return null;
+          } else {
+            return "Please, insert a positive number.";
+          }
+        },
+      });
+
+      eventEmitter.emit("updateQuantityThreshold", quantityThreshold);
+    }
+  );
 }
 
 export function deactivate() {}

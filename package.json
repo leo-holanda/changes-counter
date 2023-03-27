@@ -18,6 +18,10 @@
       {
         "command": "changed-lines-count.setTargetBranch",
         "title": "Set target branch"
+      },
+      {
+        "command": "changed-lines-count.setQuantityThreshold",
+        "title": "Set changes quantity threshold"
       }
     ]
   },
