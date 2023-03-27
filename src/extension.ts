@@ -25,8 +25,10 @@ export async function activate(context: vscode.ExtensionContext) {
   if (storedTargetBranch) {
     const currentChangesCount = await getChangesCount(storedTargetBranch);
     setCounter(currentChangesCount, changesQuantityBarItem);
+    changesQuantityBarItem.tooltip = getTooltipString(storedTargetBranch);
   } else {
     setCounter("?", changesQuantityBarItem);
+    changesQuantityBarItem.tooltip = getTooltipString(undefined);
   }
   changesQuantityBarItem.show();
 
@@ -35,6 +37,7 @@ export async function activate(context: vscode.ExtensionContext) {
   eventEmitter.on("updateTargetBranch", async (newTargetBranch) => {
     context.workspaceState.update("targetBranch", newTargetBranch);
     const currentChangesCount = await getChangesCount(newTargetBranch);
+    changesQuantityBarItem.tooltip = getTooltipString(newTargetBranch);
     setCounter(currentChangesCount, changesQuantityBarItem);
   });
 }
@@ -146,6 +149,33 @@ function createTargetBranchCommand(): vscode.Disposable {
       targetBranchQuickPick.show();
     }
   );
+}
+
+function getTooltipString(targetBranch?: string): vscode.MarkdownString {
+  const setBranchTargetCommandURI = vscode.Uri.parse(
+    `command:changed-lines-count.setTargetBranch`
+  );
+  const markdownTooltip = new vscode.MarkdownString();
+
+  if (targetBranch) {
+    markdownTooltip.appendMarkdown(
+      `$(git-branch) Current Target Branch: <strong>${targetBranch}</strong>`
+    );
+  } else {
+    markdownTooltip.appendMarkdown(
+      `$(error) Current Target Branch: <strong>Undefined</strong> <br> Please, select a target branch.`
+    );
+  }
+
+  markdownTooltip.appendMarkdown(
+    `<hr><br> $(refresh) [Change Target Branch](${setBranchTargetCommandURI})`
+  );
+
+  markdownTooltip.isTrusted = true;
+  markdownTooltip.supportThemeIcons = true;
+  markdownTooltip.supportHtml = true;
+
+  return markdownTooltip;
 }
 
 export function deactivate() {}
