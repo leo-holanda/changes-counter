@@ -16,34 +16,16 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.StatusBarAlignment.Left,
     10
   );
-  changesQuantityBarItem.text = "Loading...";
-  changesQuantityBarItem.show();
   context.subscriptions.push(changesQuantityBarItem);
 
-  const diffHEAD = spawn("git", ["diff", "HEAD", "--shortstat"], {
-    cwd: vscode.workspace.workspaceFolders[0].uri.path,
-  });
-
-  diffHEAD.stdout.on("data", (data: Buffer) => {
-    changesQuantityBarItem.text = "Changes: " + parseChangesQuantity(data);
-  });
-
-  diffHEAD.stderr.on("data", (data: any) => {
-    console.error(`stderr: ${data}`);
-  });
-
-  diffHEAD.on("close", (code: any) => {
-    console.log(`child process exited with code ${code}`);
-  });
-}
-
-function parseChangesQuantity(diffOutput: Buffer): string {
-  const splittedDiffOutput = diffOutput.toString().split(", ");
-  const insertions = +splittedDiffOutput[1].split(" ")[0];
-  const deletions = +splittedDiffOutput[2].split(" ")[0];
-  const changesQuantity = insertions + deletions;
-
-  return changesQuantity.toString();
+  const targetBranch = context.workspaceState.get<string>("targetBranch");
+  if (targetBranch) {
+    changesQuantityBarItem.text =
+      "Changes: " + (await getChangesCount(targetBranch));
+  } else {
+    changesQuantityBarItem.text = "Changes: ?";
+  }
+  changesQuantityBarItem.show();
 }
 
 async function checkIfGitIsInitiated(): Promise<boolean> {
@@ -64,6 +46,37 @@ async function checkIfGitIsInitiated(): Promise<boolean> {
 
     gitCheck.on("close", (code: any) => {
       resolve(isGitInitiated);
+    });
+  });
+}
+
+function parseChangesQuantity(diffOutput: Buffer): string {
+  const splittedDiffOutput = diffOutput.toString().split(", ");
+  const insertions = +splittedDiffOutput[1].split(" ")[0];
+  const deletions = +splittedDiffOutput[2].split(" ")[0];
+  const changesQuantity = insertions + deletions;
+
+  return changesQuantity.toString();
+}
+
+async function getChangesCount(targetBranch: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let changesCount: string;
+
+    const diffHEAD = spawn("git", ["diff", targetBranch, "--shortstat"], {
+      cwd: vscode.workspace.workspaceFolders![0].uri.path,
+    });
+
+    diffHEAD.stdout.on("data", (data: Buffer) => {
+      changesCount = parseChangesQuantity(data);
+    });
+
+    diffHEAD.stderr.on("data", (data: any) => {
+      reject("?");
+    });
+
+    diffHEAD.on("close", (code: any) => {
+      resolve(changesCount);
     });
   });
 }
