@@ -1,8 +1,14 @@
 const { spawn } = require("child_process");
 import * as vscode from "vscode";
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
   if (!vscode.workspace.workspaceFolders) {
+    return;
+  }
+
+  const isGitInitiated = await checkIfGitIsInitiated();
+
+  if (!isGitInitiated) {
     return;
   }
 
@@ -31,8 +37,6 @@ export function activate(context: vscode.ExtensionContext) {
   });
 }
 
-export function deactivate() {}
-
 function parseChangesQuantity(diffOutput: Buffer): string {
   const splittedDiffOutput = diffOutput.toString().split(", ");
   const insertions = +splittedDiffOutput[1].split(" ")[0];
@@ -41,3 +45,27 @@ function parseChangesQuantity(diffOutput: Buffer): string {
 
   return changesQuantity.toString();
 }
+
+async function checkIfGitIsInitiated(): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    let isGitInitiated: boolean;
+
+    const gitCheck = spawn("git", ["rev-parse", "--is-inside-work-tree"], {
+      cwd: vscode.workspace.workspaceFolders![0].uri.path,
+    });
+
+    gitCheck.stdout.on("data", (data: Buffer) => {
+      isGitInitiated = data.toString().includes("true");
+    });
+
+    gitCheck.stderr.on("data", (data: any) => {
+      reject(false);
+    });
+
+    gitCheck.on("close", (code: any) => {
+      resolve(isGitInitiated);
+    });
+  });
+}
+
+export function deactivate() {}
