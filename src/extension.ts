@@ -1,5 +1,8 @@
 const { spawn } = require("child_process");
+import { EventEmitter } from "node:events";
 import * as vscode from "vscode";
+
+const eventEmitter = new EventEmitter();
 
 export async function activate(context: vscode.ExtensionContext) {
   if (!vscode.workspace.workspaceFolders) {
@@ -18,16 +21,22 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(changesQuantityBarItem);
 
-  const targetBranch = context.workspaceState.get<string>("targetBranch");
-  if (targetBranch) {
-    changesQuantityBarItem.text =
-      "Changes: " + (await getChangesCount(targetBranch));
+  const storedTargetBranch = context.workspaceState.get<string>("targetBranch");
+  if (storedTargetBranch) {
+    const currentChangesCount = await getChangesCount(storedTargetBranch);
+    setCounter(currentChangesCount, changesQuantityBarItem);
   } else {
-    changesQuantityBarItem.text = "Changes: ?";
+    setCounter("?", changesQuantityBarItem);
   }
   changesQuantityBarItem.show();
 
-  registerSetTargetBranchCommand(context);
+  context.subscriptions.push(createTargetBranchCommand());
+
+  eventEmitter.on("updateTargetBranch", async (newTargetBranch) => {
+    context.workspaceState.update("targetBranch", newTargetBranch);
+    const currentChangesCount = await getChangesCount(newTargetBranch);
+    setCounter(currentChangesCount, changesQuantityBarItem);
+  });
 }
 
 async function checkIfGitIsInitiated(): Promise<boolean> {
@@ -83,6 +92,13 @@ async function getChangesCount(targetBranch: string): Promise<string> {
   });
 }
 
+function setCounter(
+  newCounterValue: string,
+  counterBarItem: vscode.StatusBarItem
+): void {
+  counterBarItem.text = "Changes: " + newCounterValue;
+}
+
 async function getAvaliableBranches(): Promise<string[]> {
   return new Promise((resolve, reject) => {
     let avaliableBranches: string[];
@@ -110,10 +126,8 @@ async function getAvaliableBranches(): Promise<string[]> {
   });
 }
 
-function registerSetTargetBranchCommand(
-  context: vscode.ExtensionContext
-): void {
-  const setTargetBranchCommand = vscode.commands.registerCommand(
+function createTargetBranchCommand(): vscode.Disposable {
+  return vscode.commands.registerCommand(
     "changed-lines-count.setTargetBranch",
     async () => {
       const targetBranchQuickPick = vscode.window.createQuickPick();
@@ -125,15 +139,13 @@ function registerSetTargetBranchCommand(
       });
 
       targetBranchQuickPick.onDidChangeSelection((selection) => {
-        context.workspaceState.update("targetBranch", selection[0].label);
+        eventEmitter.emit("updateTargetBranch", selection[0].label);
         targetBranchQuickPick.dispose();
       });
 
       targetBranchQuickPick.show();
     }
   );
-
-  context.subscriptions.push(setTargetBranchCommand);
 }
 
 export function deactivate() {}
