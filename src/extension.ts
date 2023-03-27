@@ -2,6 +2,10 @@ const { spawn } = require("child_process");
 import * as vscode from "vscode";
 
 export function activate(context: vscode.ExtensionContext) {
+  if (!vscode.workspace.workspaceFolders) {
+    return;
+  }
+
   const changesQuantityBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Left,
     10
@@ -10,23 +14,21 @@ export function activate(context: vscode.ExtensionContext) {
   changesQuantityBarItem.show();
   context.subscriptions.push(changesQuantityBarItem);
 
-  if (vscode.workspace.workspaceFolders) {
-    const diffHEAD = spawn("git", ["diff", "HEAD", "--shortstat"], {
-      cwd: vscode.workspace.workspaceFolders[0].uri.path,
-    });
+  const diffHEAD = spawn("git", ["diff", "HEAD", "--shortstat"], {
+    cwd: vscode.workspace.workspaceFolders[0].uri.path,
+  });
 
-    diffHEAD.stdout.on("data", (data: Buffer) => {
-      changesQuantityBarItem.text = "Changes: " + parseChangesQuantity(data);
-    });
+  diffHEAD.stdout.on("data", (data: Buffer) => {
+    changesQuantityBarItem.text = "Changes: " + parseChangesQuantity(data);
+  });
 
-    diffHEAD.stderr.on("data", (data: any) => {
-      console.error(`stderr: ${data}`);
-    });
+  diffHEAD.stderr.on("data", (data: any) => {
+    console.error(`stderr: ${data}`);
+  });
 
-    diffHEAD.on("close", (code: any) => {
-      console.log(`child process exited with code ${code}`);
-    });
-  }
+  diffHEAD.on("close", (code: any) => {
+    console.log(`child process exited with code ${code}`);
+  });
 }
 
 export function deactivate() {}
