@@ -5,13 +5,7 @@ import * as vscode from "vscode";
 const eventEmitter = new EventEmitter();
 
 export async function activate(context: vscode.ExtensionContext) {
-  if (!vscode.workspace.workspaceFolders) {
-    return;
-  }
-
-  const isGitInitiated = await checkIfGitIsInitiated();
-
-  if (!isGitInitiated) {
+  if (!(await isGitInitialized())) {
     return;
   }
 
@@ -37,16 +31,26 @@ export async function activate(context: vscode.ExtensionContext) {
   });
 }
 
-async function checkIfGitIsInitiated(): Promise<boolean> {
+function hasFoldersInWorkspace(): boolean {
+  return vscode.workspace.workspaceFolders
+    ? vscode.workspace.workspaceFolders.length > 0
+    : false;
+}
+
+async function isGitInitialized(): Promise<boolean> {
   return new Promise((resolve, reject) => {
-    let isGitInitiated: boolean;
+    if (!hasFoldersInWorkspace()) {
+      resolve(false);
+    }
+
+    let isGitInitialized: boolean;
 
     const gitCheck = spawn("git", ["rev-parse", "--is-inside-work-tree"], {
       cwd: vscode.workspace.workspaceFolders![0].uri.path,
     });
 
     gitCheck.stdout.on("data", (data: Buffer) => {
-      isGitInitiated = data.toString().includes("true");
+      isGitInitialized = data.toString().includes("true");
     });
 
     gitCheck.stderr.on("data", (data: any) => {
@@ -54,7 +58,7 @@ async function checkIfGitIsInitiated(): Promise<boolean> {
     });
 
     gitCheck.on("close", (code: any) => {
-      resolve(isGitInitiated);
+      resolve(isGitInitialized);
     });
   });
 }
