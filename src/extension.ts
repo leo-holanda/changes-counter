@@ -32,6 +32,10 @@ export async function activate(context: vscode.ExtensionContext) {
     if (config.affectsConfiguration("changedLinesCount"))
       await refreshStatusBarItem(context, changesQuantityBarItem);
   });
+
+  vscode.workspace.onDidSaveTextDocument(async () => {
+    await refreshStatusBarItem(context, changesQuantityBarItem);
+  });
 }
 
 function hasFoldersInWorkspace(): boolean {
