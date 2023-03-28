@@ -23,7 +23,17 @@
         "command": "changed-lines-count.setQuantityThreshold",
         "title": "Set changes quantity threshold"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Changed Lines Count",
+      "properties": {
+        "changedLinesCount.disableStatusBarIconColorChange": {
+          "description": "Disabled the status bar icon color change when changes count is higher than the defined threshold",
+          "type": "boolean",
+          "default": false
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

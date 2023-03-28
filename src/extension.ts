@@ -27,6 +27,11 @@ export async function activate(context: vscode.ExtensionContext) {
     context.workspaceState.update("quantityThreshold", newQuantityThreshold);
     await refreshStatusBarItem(context, changesQuantityBarItem);
   });
+
+  vscode.workspace.onDidChangeConfiguration(async (config) => {
+    if (config.affectsConfiguration("changedLinesCount"))
+      await refreshStatusBarItem(context, changesQuantityBarItem);
+  });
 }
 
 function hasFoldersInWorkspace(): boolean {
@@ -248,7 +253,13 @@ function refreshStatusBarCounter(
 ): void {
   statusBarItem.text = "Changes: " + (newChangesCount || "?");
 
+  const config = vscode.workspace.getConfiguration("changedLinesCount");
+  const shouldDisableColorChange = config.get<boolean>(
+    "disableStatusBarIconColorChange"
+  );
+
   if (
+    !!shouldDisableColorChange &&
     changesThreshold &&
     newChangesCount &&
     +newChangesCount > +changesThreshold
