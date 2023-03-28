@@ -75,7 +75,8 @@ async function getChangesCount(
     if (!targetBranch) {
       resolve(undefined);
     }
-    let changesCount: string;
+
+    let changesCount: string = "0";
 
     const diffHEAD = spawn("git", ["diff", targetBranch, "--shortstat"], {
       cwd: vscode.workspace.workspaceFolders![0].uri.path,
@@ -86,7 +87,8 @@ async function getChangesCount(
     });
 
     diffHEAD.stderr.on("data", (data: any) => {
-      reject("?");
+      console.error(data.toString());
+      reject("Error");
     });
 
     diffHEAD.on("close", (code: any) => {
