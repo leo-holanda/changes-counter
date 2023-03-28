@@ -17,11 +17,11 @@
     "commands": [
       {
         "command": "changed-lines-count.setTargetBranch",
-        "title": "Set target branch"
+        "title": "Changed Lines Count: Set target branch"
       },
       {
         "command": "changed-lines-count.setQuantityThreshold",
-        "title": "Set changes quantity threshold"
+        "title": "Changed Lines Count: Set changes quantity threshold"
       }
     ],
     "configuration": {
