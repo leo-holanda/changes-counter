@@ -20,24 +20,7 @@ export async function activate(context: vscode.ExtensionContext) {
     10
   );
   context.subscriptions.push(changesQuantityBarItem);
-
-  const storedChangesQuantityThreshold =
-    context.workspaceState.get<string>("quantityThreshold");
-  const storedTargetBranch = context.workspaceState.get<string>("targetBranch");
-  if (storedTargetBranch) {
-    const currentChangesCount = await getChangesCount(storedTargetBranch);
-    setCounter(currentChangesCount, changesQuantityBarItem);
-    changesQuantityBarItem.tooltip = getTooltipString(
-      storedTargetBranch,
-      storedChangesQuantityThreshold
-    );
-  } else {
-    setCounter("?", changesQuantityBarItem);
-    changesQuantityBarItem.tooltip = getTooltipString(
-      undefined,
-      storedChangesQuantityThreshold
-    );
-  }
+  await refreshStatusBarItem(context, changesQuantityBarItem);
   changesQuantityBarItem.show();
 
   context.subscriptions.push(createTargetBranchCommand());
@@ -45,18 +28,12 @@ export async function activate(context: vscode.ExtensionContext) {
 
   eventEmitter.on("updateTargetBranch", async (newTargetBranch) => {
     context.workspaceState.update("targetBranch", newTargetBranch);
-    const currentChangesCount = await getChangesCount(newTargetBranch);
-    changesQuantityBarItem.tooltip = getTooltipString(newTargetBranch);
-    setCounter(currentChangesCount, changesQuantityBarItem);
+    await refreshStatusBarItem(context, changesQuantityBarItem);
   });
 
   eventEmitter.on("updateQuantityThreshold", async (newQuantityThreshold) => {
     context.workspaceState.update("quantityThreshold", newQuantityThreshold);
-    const targetBranch = context.workspaceState.get<string>("targetBranch");
-    changesQuantityBarItem.tooltip = getTooltipString(
-      targetBranch,
-      newQuantityThreshold
-    );
+    await refreshStatusBarItem(context, changesQuantityBarItem);
   });
 }
 
@@ -91,8 +68,13 @@ function parseChangesQuantity(diffOutput: Buffer): string {
   return changesQuantity.toString();
 }
 
-async function getChangesCount(targetBranch: string): Promise<string> {
+async function getChangesCount(
+  targetBranch?: string
+): Promise<string | undefined> {
   return new Promise((resolve, reject) => {
+    if (!targetBranch) {
+      resolve(undefined);
+    }
     let changesCount: string;
 
     const diffHEAD = spawn("git", ["diff", targetBranch, "--shortstat"], {
@@ -111,13 +93,6 @@ async function getChangesCount(targetBranch: string): Promise<string> {
       resolve(changesCount);
     });
   });
-}
-
-function setCounter(
-  newCounterValue: string,
-  counterBarItem: vscode.StatusBarItem
-): void {
-  counterBarItem.text = "Changes: " + newCounterValue;
 }
 
 async function getAvaliableBranches(): Promise<string[]> {
@@ -254,6 +229,48 @@ function createQuantityThresholdSetterCommand(): vscode.Disposable {
       eventEmitter.emit("updateQuantityThreshold", quantityThreshold);
     }
   );
+}
+
+async function refreshStatusBarItem(
+  context: vscode.ExtensionContext,
+  statusBarItem: vscode.StatusBarItem
+): Promise<void> {
+  const targetBranch = context.workspaceState.get<string>("targetBranch");
+  const quantityThreshold =
+    context.workspaceState.get<string>("quantityThreshold");
+
+  const changesCount = await getChangesCount(targetBranch);
+  refreshStatusBarCounter(statusBarItem, changesCount, quantityThreshold);
+  refreshStatusBarTooltip(statusBarItem, targetBranch, quantityThreshold);
+}
+
+function refreshStatusBarCounter(
+  statusBarItem: vscode.StatusBarItem,
+  newChangesCount?: string,
+  changesThreshold?: string
+): void {
+  statusBarItem.text = "Changes: " + (newChangesCount || "?");
+
+  if (
+    changesThreshold &&
+    newChangesCount &&
+    +newChangesCount > +changesThreshold
+  ) {
+    statusBarItem.backgroundColor = new vscode.ThemeColor(
+      "statusBarItem.warningBackground"
+    );
+  } else {
+    statusBarItem.backgroundColor = undefined;
+  }
+}
+
+function refreshStatusBarTooltip(
+  statusBarItem: vscode.StatusBarItem,
+  targetBranch?: string,
+  quantityThreshold?: string
+): void {
+  const newTooltipString = getTooltipString(targetBranch, quantityThreshold);
+  statusBarItem.tooltip = newTooltipString;
 }
 
 export function deactivate() {}
