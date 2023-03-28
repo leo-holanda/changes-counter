@@ -5,9 +5,7 @@ import * as vscode from "vscode";
 const eventEmitter = new EventEmitter();
 
 export async function activate(context: vscode.ExtensionContext) {
-  if (!(await isGitInitialized())) {
-    return;
-  }
+  if (!(await isGitInitialized())) return;
 
   const changesQuantityBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Left,
@@ -39,9 +37,7 @@ function hasFoldersInWorkspace(): boolean {
 
 async function isGitInitialized(): Promise<boolean> {
   return new Promise((resolve, reject) => {
-    if (!hasFoldersInWorkspace()) {
-      resolve(false);
-    }
+    if (!hasFoldersInWorkspace()) resolve(false);
 
     let isGitInitialized: boolean;
 
@@ -76,9 +72,7 @@ async function getChangesCount(
   targetBranch?: string
 ): Promise<string | undefined> {
   return new Promise((resolve, reject) => {
-    if (!targetBranch) {
-      resolve(undefined);
-    }
+    if (!targetBranch) resolve(undefined);
 
     let changesCount: string = "0";
 
@@ -224,11 +218,8 @@ function createQuantityThresholdSetterCommand(): vscode.Disposable {
         value: "250",
         prompt: "Only positive numbers are allowed.",
         validateInput: (value) => {
-          if (+value && +value > 0) {
-            return null;
-          } else {
-            return "Please, insert a positive number.";
-          }
+          if (+value && +value > 0) return null;
+          else return "Please, insert a positive number.";
         },
       });
 
