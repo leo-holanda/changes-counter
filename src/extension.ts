@@ -361,9 +361,7 @@ function refreshStatusBarCounter(
 
   if (
     !!shouldDisableColorChange &&
-    changesQuantityThreshold &&
-    newChangesCount &&
-    +newChangesCount > +changesQuantityThreshold
+    hasPassedThreshold(newChangesCount, changesQuantityThreshold)
   ) {
     statusBarItem.backgroundColor = new vscode.ThemeColor(
       "statusBarItem.warningBackground"
