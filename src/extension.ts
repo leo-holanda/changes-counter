@@ -6,7 +6,20 @@ const eventEmitter = new EventEmitter();
 let isUserNotified = false;
 
 export async function activate(context: vscode.ExtensionContext) {
-  if (!(await isGitInitialized())) return;
+  if (!(await isGitInitialized())) {
+    vscode.commands.executeCommand(
+      "setContext",
+      "changedLinesCount.isGitInitialized",
+      false
+    );
+    return;
+  }
+
+  vscode.commands.executeCommand(
+    "setContext",
+    "changedLinesCount.isGitInitialized",
+    true
+  );
 
   const changesQuantityBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Left,

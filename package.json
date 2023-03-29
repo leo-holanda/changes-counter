@@ -38,6 +38,18 @@
           "default": false
         }
       }
+    },
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "changed-lines-count.setTargetBranch",
+          "when": "changedLinesCount.isGitInitialized"
+        },
+        {
+          "command": "changed-lines-count.setQuantityThreshold",
+          "when": "changedLinesCount.isGitInitialized"
+        }
+      ]
     }
   },
   "scripts": {
