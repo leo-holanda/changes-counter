@@ -5,6 +5,12 @@ import * as vscode from "vscode";
 const eventEmitter = new EventEmitter();
 let isUserNotified = false;
 
+interface ChangesData {
+  insertions: string;
+  deletions: string;
+  changesSum: string;
+}
+
 export async function activate(context: vscode.ExtensionContext) {
   if (!(await isGitInitialized())) {
     vscode.commands.executeCommand(
@@ -82,29 +88,33 @@ async function isGitInitialized(): Promise<boolean> {
   });
 }
 
-function parseChangesQuantity(diffOutput: Buffer): string {
+function parseChangesQuantity(diffOutput: Buffer): ChangesData {
   const splittedDiffOutput = diffOutput.toString().split(", ");
-  const insertions = +splittedDiffOutput[1].split(" ")[0];
-  const deletions = +splittedDiffOutput[2].split(" ")[0];
-  const changesQuantity = insertions + deletions;
+  const insertions = splittedDiffOutput[1].split(" ")[0];
+  const deletions = splittedDiffOutput[2].split(" ")[0];
+  const changesSum = +insertions + +deletions;
 
-  return changesQuantity.toString();
+  return { changesSum: changesSum.toString(), insertions, deletions };
 }
 
-async function getChangesCount(
+async function getChangesData(
   targetBranch?: string
-): Promise<string | undefined> {
+): Promise<ChangesData | undefined> {
   return new Promise((resolve, reject) => {
     if (!targetBranch) resolve(undefined);
 
-    let changesCount: string = "0";
+    let changesData: ChangesData = {
+      insertions: "0",
+      deletions: "0",
+      changesSum: "0",
+    };
 
     const diffHEAD = spawn("git", ["diff", targetBranch, "--shortstat"], {
       cwd: vscode.workspace.workspaceFolders![0].uri.path,
     });
 
     diffHEAD.stdout.on("data", (data: Buffer) => {
-      changesCount = parseChangesQuantity(data);
+      changesData = parseChangesQuantity(data);
     });
 
     diffHEAD.stderr.on("data", (data: any) => {
@@ -113,7 +123,7 @@ async function getChangesCount(
     });
 
     diffHEAD.on("close", (code: any) => {
-      resolve(changesCount);
+      resolve(changesData);
     });
   });
 }
@@ -192,6 +202,7 @@ function createTargetBranchCommand(): vscode.Disposable {
 }
 
 function getTooltipString(
+  changesData?: ChangesData,
   targetBranch?: string,
   quantityThreshold?: string
 ): vscode.MarkdownString {
@@ -202,6 +213,21 @@ function getTooltipString(
     `command:changed-lines-count.setQuantityThreshold`
   );
   const markdownTooltip = new vscode.MarkdownString();
+
+  if (changesData) {
+    markdownTooltip.appendMarkdown(
+      `$(plus) <strong>Insertions: </strong> <span style="color:#3fb950;">${changesData.insertions} </span> <br>`
+    );
+    markdownTooltip.appendMarkdown(
+      `$(remove) <strong>Deletions: </strong> <span style="color:#f85149;">${changesData.deletions}</span><br>`
+    );
+    markdownTooltip.appendMarkdown(
+      `$(chrome-maximize) <strong>Total Changes: </strong> ${changesData.changesSum}<br>`
+    );
+
+    markdownTooltip.appendMarkdown("<hr>");
+    markdownTooltip.appendMarkdown("<br>");
+  }
 
   if (targetBranch) {
     markdownTooltip.appendMarkdown(
@@ -283,17 +309,26 @@ async function refreshStatusBarItem(
   const quantityThreshold =
     context.workspaceState.get<string>("quantityThreshold");
 
-  const changesCount = await getChangesCount(targetBranch);
+  const changesData = await getChangesData(targetBranch);
 
-  verifyNotificationLockValidity(changesCount, quantityThreshold);
-  if (shouldSendNotification(changesCount, quantityThreshold)) {
+  verifyNotificationLockValidity(changesData?.changesSum, quantityThreshold);
+  if (shouldSendNotification(changesData?.changesSum, quantityThreshold)) {
     vscode.window.showWarningMessage(
       "You have passed the changes quantity threshold."
     );
     isUserNotified = true;
   }
-  refreshStatusBarCounter(statusBarItem, changesCount, quantityThreshold);
-  refreshStatusBarTooltip(statusBarItem, targetBranch, quantityThreshold);
+  refreshStatusBarCounter(
+    statusBarItem,
+    changesData?.changesSum,
+    quantityThreshold
+  );
+  refreshStatusBarTooltip(
+    statusBarItem,
+    targetBranch,
+    quantityThreshold,
+    changesData
+  );
 }
 
 function refreshStatusBarCounter(
@@ -325,9 +360,14 @@ function refreshStatusBarCounter(
 function refreshStatusBarTooltip(
   statusBarItem: vscode.StatusBarItem,
   targetBranch?: string,
-  quantityThreshold?: string
+  quantityThreshold?: string,
+  changesData?: ChangesData
 ): void {
-  const newTooltipString = getTooltipString(targetBranch, quantityThreshold);
+  const newTooltipString = getTooltipString(
+    changesData,
+    targetBranch,
+    quantityThreshold
+  );
   statusBarItem.tooltip = newTooltipString;
 }
 
