@@ -72,7 +72,10 @@ function hasFoldersInWorkspace(): boolean {
 
 async function isGitInitialized(): Promise<boolean> {
   return new Promise((resolve, reject) => {
-    if (!hasFoldersInWorkspace()) resolve(false);
+    if (!hasFoldersInWorkspace()) {
+      resolve(false);
+      return;
+    }
 
     let isGitInitialized: boolean;
 
@@ -107,7 +110,10 @@ async function getChangesData(
   comparisonBranch?: string
 ): Promise<ChangesData | undefined> {
   return new Promise((resolve, reject) => {
-    if (!comparisonBranch) resolve(undefined);
+    if (comparisonBranch === undefined) {
+      resolve(undefined);
+      return;
+    }
 
     let changesData: ChangesData = {
       insertions: "0",
