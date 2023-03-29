@@ -16,11 +16,11 @@
   "contributes": {
     "commands": [
       {
-        "command": "changed-lines-count.setTargetBranch",
-        "title": "Changed Lines Count: Set target branch"
+        "command": "changed-lines-count.setComparisonBranch",
+        "title": "Changed Lines Count: Set comparison branch"
       },
       {
-        "command": "changed-lines-count.setQuantityThreshold",
+        "command": "changed-lines-count.setChangesQuantityThreshold",
         "title": "Changed Lines Count: Set changes quantity threshold"
       }
     ],
@@ -42,11 +42,11 @@
     "menus": {
       "commandPalette": [
         {
-          "command": "changed-lines-count.setTargetBranch",
+          "command": "changed-lines-count.setComparisonBranch",
           "when": "changedLinesCount.isGitInitialized"
         },
         {
-          "command": "changed-lines-count.setQuantityThreshold",
+          "command": "changed-lines-count.setChangesQuantityThreshold",
           "when": "changedLinesCount.isGitInitialized"
         }
       ]

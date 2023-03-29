@@ -8,7 +8,7 @@ let isUserNotified = false;
 interface ChangesData {
   insertions: string;
   deletions: string;
-  changesSum: string;
+  changesCount: string;
 }
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -35,18 +35,24 @@ export async function activate(context: vscode.ExtensionContext) {
   await refreshStatusBarItem(context, changesQuantityBarItem);
   changesQuantityBarItem.show();
 
-  context.subscriptions.push(createTargetBranchCommand());
-  context.subscriptions.push(createQuantityThresholdSetterCommand());
+  context.subscriptions.push(createSetComparisonBranchCommand());
+  context.subscriptions.push(createSetQuantityThresholdCommand());
 
-  eventEmitter.on("updateTargetBranch", async (newTargetBranch) => {
-    context.workspaceState.update("targetBranch", newTargetBranch);
+  eventEmitter.on("updateComparisonBranch", async (newComparisonBranch) => {
+    context.workspaceState.update("comparisonBranch", newComparisonBranch);
     await refreshStatusBarItem(context, changesQuantityBarItem);
   });
 
-  eventEmitter.on("updateQuantityThreshold", async (newQuantityThreshold) => {
-    context.workspaceState.update("quantityThreshold", newQuantityThreshold);
-    await refreshStatusBarItem(context, changesQuantityBarItem);
-  });
+  eventEmitter.on(
+    "updateChangesQuantityThreshold",
+    async (newQuantityThreshold) => {
+      context.workspaceState.update(
+        "changesQuantityThreshold",
+        newQuantityThreshold
+      );
+      await refreshStatusBarItem(context, changesQuantityBarItem);
+    }
+  );
 
   vscode.workspace.onDidChangeConfiguration(async (config) => {
     if (config.affectsConfiguration("changedLinesCount"))
@@ -88,33 +94,33 @@ async function isGitInitialized(): Promise<boolean> {
   });
 }
 
-function parseChangesQuantity(diffOutput: Buffer): ChangesData {
+function parseDiffOutput(diffOutput: Buffer): ChangesData {
   const splittedDiffOutput = diffOutput.toString().split(", ");
   const insertions = splittedDiffOutput[1].split(" ")[0];
   const deletions = splittedDiffOutput[2].split(" ")[0];
-  const changesSum = +insertions + +deletions;
+  const changesCount = +insertions + +deletions;
 
-  return { changesSum: changesSum.toString(), insertions, deletions };
+  return { changesCount: changesCount.toString(), insertions, deletions };
 }
 
 async function getChangesData(
-  targetBranch?: string
+  comparisonBranch?: string
 ): Promise<ChangesData | undefined> {
   return new Promise((resolve, reject) => {
-    if (!targetBranch) resolve(undefined);
+    if (!comparisonBranch) resolve(undefined);
 
     let changesData: ChangesData = {
       insertions: "0",
       deletions: "0",
-      changesSum: "0",
+      changesCount: "0",
     };
 
-    const diffHEAD = spawn("git", ["diff", targetBranch, "--shortstat"], {
+    const diffHEAD = spawn("git", ["diff", comparisonBranch, "--shortstat"], {
       cwd: vscode.workspace.workspaceFolders![0].uri.path,
     });
 
     diffHEAD.stdout.on("data", (data: Buffer) => {
-      changesData = parseChangesQuantity(data);
+      changesData = parseDiffOutput(data);
     });
 
     diffHEAD.stderr.on("data", (data: any) => {
@@ -162,13 +168,12 @@ async function getAvaliableBranches(): Promise<string[]> {
   });
 }
 
-function createTargetBranchCommand(): vscode.Disposable {
+function createSetComparisonBranchCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(
-    "changed-lines-count.setTargetBranch",
+    "changed-lines-count.setComparisonBranch",
     async () => {
-      const targetBranchQuickPick = vscode.window.createQuickPick();
-      targetBranchQuickPick.placeholder =
-        "Choose a target branch to be compared";
+      const comparisonBranchQuickPick = vscode.window.createQuickPick();
+      comparisonBranchQuickPick.placeholder = "Choose a branch to be compared";
       const avaliableBranches = await getAvaliableBranches();
       const quickPickItems = avaliableBranches.map((branch) => {
         return { label: branch };
@@ -189,90 +194,92 @@ function createTargetBranchCommand(): vscode.Disposable {
         );
       }
 
-      targetBranchQuickPick.items = quickPickItems;
+      comparisonBranchQuickPick.items = quickPickItems;
 
-      targetBranchQuickPick.onDidChangeSelection((selection) => {
-        eventEmitter.emit("updateTargetBranch", selection[0].label);
-        targetBranchQuickPick.dispose();
+      comparisonBranchQuickPick.onDidChangeSelection((selection) => {
+        eventEmitter.emit("updateComparisonBranch", selection[0].label);
+        comparisonBranchQuickPick.dispose();
       });
 
-      targetBranchQuickPick.show();
+      comparisonBranchQuickPick.show();
     }
   );
 }
 
 function getTooltipString(
   changesData?: ChangesData,
-  targetBranch?: string,
-  quantityThreshold?: string
+  comparisonBranch?: string,
+  changesQuantityThreshold?: string
 ): vscode.MarkdownString {
-  const setBranchTargetCommandURI = vscode.Uri.parse(
-    `command:changed-lines-count.setTargetBranch`
+  const setComparisonBranchCommandURI = vscode.Uri.parse(
+    `command:changed-lines-count.setComparisonBranch`
   );
-  const getQuantityThresholdCommandURI = vscode.Uri.parse(
-    `command:changed-lines-count.setQuantityThreshold`
+  const setChangesQuantityThresholdCommandURI = vscode.Uri.parse(
+    `command:changed-lines-count.setChangesQuantityThreshold`
   );
   const markdownTooltip = new vscode.MarkdownString();
 
   if (changesData) {
     markdownTooltip.appendMarkdown(
-      `$(plus) <strong>Insertions: </strong> <span style="color:#3fb950;">${changesData.insertions} </span> <br>`
+      `$(plus) <strong>Insertions: </strong> <span style="color:#3fb950;">${changesData.insertions}</span> <br>`
     );
     markdownTooltip.appendMarkdown(
-      `$(remove) <strong>Deletions: </strong> <span style="color:#f85149;">${changesData.deletions}</span><br>`
+      `$(remove) <strong>Deletions: </strong> <span style="color:#f85149;">${changesData.deletions}</span> <br>`
     );
     markdownTooltip.appendMarkdown(
-      `$(chrome-maximize) <strong>Total Changes: </strong> ${changesData.changesSum}<br>`
+      `$(chrome-maximize) <strong>Total Changes: </strong> ${changesData.changesCount}<br>`
     );
 
     markdownTooltip.appendMarkdown("<hr>");
     markdownTooltip.appendMarkdown("<br>");
   }
 
-  if (targetBranch) {
+  if (comparisonBranch) {
     markdownTooltip.appendMarkdown(
-      `$(git-branch) <strong>Current Target Branch</strong> <br> ${targetBranch}`
+      `$(git-branch) <strong>Current Comparison Branch</strong> <br> ${comparisonBranch}`
     );
   } else {
     markdownTooltip.appendMarkdown(
-      `$(git-branch) <strong>Current Target Branch</strong> <br> Undefined`
+      `$(git-branch) <strong>Current Comparison Branch</strong> <br> Undefined`
     );
   }
 
   markdownTooltip.appendMarkdown("<br>");
 
-  if (quantityThreshold) {
+  if (changesQuantityThreshold) {
     markdownTooltip.appendMarkdown(
-      `$(arrow-both) <strong>Quantity Threshold</strong> <br> ${quantityThreshold} changes`
+      `$(arrow-both) <strong>Changes Quantity Threshold</strong> <br> ${changesQuantityThreshold} changes`
     );
   } else {
     markdownTooltip.appendMarkdown(
-      `$(arrow-both) <strong>Quantity Threshold</strong> <br> Undefined`
+      `$(arrow-both) <strong>Changes Quantity Threshold</strong> <br> Undefined`
     );
   }
 
   markdownTooltip.appendMarkdown("<br>");
 
-  if (!targetBranch) {
+  if (!comparisonBranch) {
     markdownTooltip.appendMarkdown("<br>");
-    markdownTooltip.appendMarkdown(`$(alert) Set a target branch.`);
+    markdownTooltip.appendMarkdown(`$(alert) Set the comparison branch.`);
   }
 
-  if (!quantityThreshold) {
+  if (!changesQuantityThreshold) {
     markdownTooltip.appendMarkdown("<br>");
-    markdownTooltip.appendMarkdown(`$(alert) Set a quantity threshold.`);
+    markdownTooltip.appendMarkdown(
+      `$(alert) Set the changes quantity threshold.`
+    );
   }
 
   markdownTooltip.appendMarkdown(
     `<hr><br> $(edit) [${
-      targetBranch ? "Change" : "Set"
-    } Target Branch](${setBranchTargetCommandURI}) <br>`
+      comparisonBranch ? "Change" : "Set"
+    } Comparison Branch](${setComparisonBranchCommandURI}) <br>`
   );
 
   markdownTooltip.appendMarkdown(
     `$(edit) [${
-      quantityThreshold ? "Change" : "Set"
-    } Quantity Threshold](${getQuantityThresholdCommandURI})`
+      changesQuantityThreshold ? "Change" : "Set"
+    } Changes Quantity Threshold](${setChangesQuantityThresholdCommandURI})`
   );
 
   markdownTooltip.isTrusted = true;
@@ -282,13 +289,12 @@ function getTooltipString(
   return markdownTooltip;
 }
 
-function createQuantityThresholdSetterCommand(): vscode.Disposable {
+function createSetQuantityThresholdCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(
-    "changed-lines-count.setQuantityThreshold",
+    "changed-lines-count.setChangesQuantityThreshold",
     async () => {
-      const quantityThreshold = await vscode.window.showInputBox({
-        title: "Insert the changes quantity alert threshold",
-        value: "250",
+      const changesQuantityThreshold = await vscode.window.showInputBox({
+        title: "Insert the changes quantity threshold",
         prompt: "Only positive numbers are allowed.",
         validateInput: (value) => {
           if (+value && +value > 0) return null;
@@ -296,7 +302,10 @@ function createQuantityThresholdSetterCommand(): vscode.Disposable {
         },
       });
 
-      eventEmitter.emit("updateQuantityThreshold", quantityThreshold);
+      eventEmitter.emit(
+        "updateChangesQuantityThreshold",
+        changesQuantityThreshold
+      );
     }
   );
 }
@@ -305,14 +314,21 @@ async function refreshStatusBarItem(
   context: vscode.ExtensionContext,
   statusBarItem: vscode.StatusBarItem
 ): Promise<void> {
-  const targetBranch = context.workspaceState.get<string>("targetBranch");
-  const quantityThreshold =
-    context.workspaceState.get<string>("quantityThreshold");
+  const comparisonBranch =
+    context.workspaceState.get<string>("comparisonBranch");
+  const changesQuantityThreshold = context.workspaceState.get<string>(
+    "changesQuantityThreshold"
+  );
 
-  const changesData = await getChangesData(targetBranch);
+  const changesData = await getChangesData(comparisonBranch);
 
-  verifyNotificationLockValidity(changesData?.changesSum, quantityThreshold);
-  if (shouldSendNotification(changesData?.changesSum, quantityThreshold)) {
+  verifyNotificationLockValidity(
+    changesData?.changesCount,
+    changesQuantityThreshold
+  );
+  if (
+    shouldSendNotification(changesData?.changesCount, changesQuantityThreshold)
+  ) {
     vscode.window.showWarningMessage(
       "You have passed the changes quantity threshold."
     );
@@ -320,13 +336,13 @@ async function refreshStatusBarItem(
   }
   refreshStatusBarCounter(
     statusBarItem,
-    changesData?.changesSum,
-    quantityThreshold
+    changesData?.changesCount,
+    changesQuantityThreshold
   );
   refreshStatusBarTooltip(
     statusBarItem,
-    targetBranch,
-    quantityThreshold,
+    comparisonBranch,
+    changesQuantityThreshold,
     changesData
   );
 }
@@ -334,7 +350,7 @@ async function refreshStatusBarItem(
 function refreshStatusBarCounter(
   statusBarItem: vscode.StatusBarItem,
   newChangesCount?: string,
-  changesThreshold?: string
+  changesQuantityThreshold?: string
 ): void {
   statusBarItem.text = "Changes: " + (newChangesCount || "?");
 
@@ -345,9 +361,9 @@ function refreshStatusBarCounter(
 
   if (
     !!shouldDisableColorChange &&
-    changesThreshold &&
+    changesQuantityThreshold &&
     newChangesCount &&
-    +newChangesCount > +changesThreshold
+    +newChangesCount > +changesQuantityThreshold
   ) {
     statusBarItem.backgroundColor = new vscode.ThemeColor(
       "statusBarItem.warningBackground"
@@ -359,21 +375,21 @@ function refreshStatusBarCounter(
 
 function refreshStatusBarTooltip(
   statusBarItem: vscode.StatusBarItem,
-  targetBranch?: string,
-  quantityThreshold?: string,
+  comparisonBranch?: string,
+  changesQuantityThreshold?: string,
   changesData?: ChangesData
 ): void {
   const newTooltipString = getTooltipString(
     changesData,
-    targetBranch,
-    quantityThreshold
+    comparisonBranch,
+    changesQuantityThreshold
   );
   statusBarItem.tooltip = newTooltipString;
 }
 
 function shouldSendNotification(
   changesCount?: string,
-  changesThreshold?: string
+  changesQuantityThreshold?: string
 ) {
   const config = vscode.workspace.getConfiguration("changedLinesCount");
   const shouldDisableNotifications = config.get<boolean>(
@@ -382,7 +398,7 @@ function shouldSendNotification(
 
   if (shouldDisableNotifications !== undefined && shouldDisableNotifications)
     return false;
-  if (!hasPassedThreshold(changesCount, changesThreshold)) return false;
+  if (!hasPassedThreshold(changesCount, changesQuantityThreshold)) return false;
   if (isUserNotified) return false;
 
   return true;
@@ -390,20 +406,20 @@ function shouldSendNotification(
 
 function hasPassedThreshold(
   changesCount?: string,
-  changesThreshold?: string
+  changesQuantityThreshold?: string
 ): boolean {
   return (
-    changesThreshold !== undefined &&
+    changesQuantityThreshold !== undefined &&
     changesCount !== undefined &&
-    +changesCount > +changesThreshold
+    +changesCount > +changesQuantityThreshold
   );
 }
 
 function verifyNotificationLockValidity(
   changesCount?: string,
-  changesThreshold?: string
+  changesQuantityThreshold?: string
 ): void {
-  if (!hasPassedThreshold(changesCount, changesThreshold))
+  if (!hasPassedThreshold(changesCount, changesQuantityThreshold))
     if (isUserNotified) isUserNotified = false;
 }
 
