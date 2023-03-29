@@ -144,12 +144,29 @@ function createTargetBranchCommand(): vscode.Disposable {
     "changed-lines-count.setTargetBranch",
     async () => {
       const targetBranchQuickPick = vscode.window.createQuickPick();
-      targetBranchQuickPick.title = "Choose a target branch";
-
+      targetBranchQuickPick.placeholder =
+        "Choose a target branch to be compared";
       const avaliableBranches = await getAvaliableBranches();
-      targetBranchQuickPick.items = avaliableBranches.map((branch) => {
+      const quickPickItems = avaliableBranches.map((branch) => {
         return { label: branch };
       });
+
+      const firstRemoteBranchIndex = avaliableBranches.findIndex((branch) =>
+        branch.includes("remotes")
+      );
+      if (firstRemoteBranchIndex) {
+        const remoteBranchesSeparator: vscode.QuickPickItem = {
+          label: "Remotes",
+          kind: vscode.QuickPickItemKind.Separator,
+        };
+        quickPickItems.splice(
+          firstRemoteBranchIndex,
+          0,
+          remoteBranchesSeparator
+        );
+      }
+
+      targetBranchQuickPick.items = quickPickItems;
 
       targetBranchQuickPick.onDidChangeSelection((selection) => {
         eventEmitter.emit("updateTargetBranch", selection[0].label);
