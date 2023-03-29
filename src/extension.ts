@@ -118,8 +118,15 @@ async function getAvaliableBranches(): Promise<string[]> {
       let validBranches = branchesList.filter(
         (branch) => branch && branch[0] !== "*"
       );
-      validBranches = branchesList.map((branch) => branch.trim());
-      avaliableBranches = validBranches;
+
+      const removeRemoteBranchArrow = new RegExp("( -> ).*");
+      /*
+        "remotes/origin/HEAD -> origin/main" becomes
+        "remotes/origin/HEAD"
+      */
+      avaliableBranches = validBranches.map((branch) => {
+        return branch.trim().replace(removeRemoteBranchArrow, "");
+      });
     });
 
     getAllBranches.stderr.on("data", (data: any) => {
