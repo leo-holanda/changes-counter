@@ -1,6 +1,6 @@
-# changed-lines-count README
+# changed-lines-counter README
 
-This is the README for your extension "changed-lines-count". After writing up a brief description, we recommend including the following sections.
+This is the README for your extension "changed-lines-counter". After writing up a brief description, we recommend including the following sections.
 
 ## Features
 

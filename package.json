@@ -1,6 +1,6 @@
 {
-  "name": "changed-lines-count",
-  "displayName": "Changed Lines Count",
+  "name": "changed-lines-counter",
+  "displayName": "Changed Lines Counter",
   "description": "",
   "version": "0.0.1",
   "engines": {
@@ -16,23 +16,23 @@
   "contributes": {
     "commands": [
       {
-        "command": "changed-lines-count.setComparisonBranch",
-        "title": "Changed Lines Count: Set comparison branch"
+        "command": "changed-lines-counter.setComparisonBranch",
+        "title": "Changed Lines Counter: Set comparison branch"
       },
       {
-        "command": "changed-lines-count.setChangesQuantityThreshold",
-        "title": "Changed Lines Count: Set changes quantity threshold"
+        "command": "changed-lines-counter.setChangesQuantityThreshold",
+        "title": "Changed Lines Counter: Set changes quantity threshold"
       }
     ],
     "configuration": {
-      "title": "Changed Lines Count",
+      "title": "Changed Lines Counter",
       "properties": {
-        "changedLinesCount.disableStatusBarIconColorChange": {
+        "changedLinesCounter.disableStatusBarIconColorChange": {
           "description": "Disables the status bar icon color change when changes count is higher than the defined threshold.",
           "type": "boolean",
           "default": false
         },
-        "changedLinesCount.disableNotifications": {
+        "changedLinesCounter.disableNotifications": {
           "description": "Disables the notification when changes count is higher than the defined threshold.",
           "type": "boolean",
           "default": false
@@ -42,12 +42,12 @@
     "menus": {
       "commandPalette": [
         {
-          "command": "changed-lines-count.setComparisonBranch",
-          "when": "changedLinesCount.isGitInitialized"
+          "command": "changed-lines-counter.setComparisonBranch",
+          "when": "changedLinesCounter.isGitInitialized"
         },
         {
-          "command": "changed-lines-count.setChangesQuantityThreshold",
-          "when": "changedLinesCount.isGitInitialized"
+          "command": "changed-lines-counter.setChangesQuantityThreshold",
+          "when": "changedLinesCounter.isGitInitialized"
         }
       ]
     }
