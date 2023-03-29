@@ -28,7 +28,12 @@
       "title": "Changed Lines Count",
       "properties": {
         "changedLinesCount.disableStatusBarIconColorChange": {
-          "description": "Disabled the status bar icon color change when changes count is higher than the defined threshold",
+          "description": "Disables the status bar icon color change when changes count is higher than the defined threshold.",
+          "type": "boolean",
+          "default": false
+        },
+        "changedLinesCount.disableNotifications": {
+          "description": "Disables the notification when changes count is higher than the defined threshold.",
           "type": "boolean",
           "default": false
         }

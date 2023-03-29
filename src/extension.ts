@@ -3,6 +3,7 @@ import { EventEmitter } from "node:events";
 import * as vscode from "vscode";
 
 const eventEmitter = new EventEmitter();
+let isUserNotified = false;
 
 export async function activate(context: vscode.ExtensionContext) {
   if (!(await isGitInitialized())) return;
@@ -246,6 +247,14 @@ async function refreshStatusBarItem(
     context.workspaceState.get<string>("quantityThreshold");
 
   const changesCount = await getChangesCount(targetBranch);
+
+  verifyNotificationLockValidity(changesCount, quantityThreshold);
+  if (shouldSendNotification(changesCount, quantityThreshold)) {
+    vscode.window.showWarningMessage(
+      "You have passed the changes quantity threshold."
+    );
+    isUserNotified = true;
+  }
   refreshStatusBarCounter(statusBarItem, changesCount, quantityThreshold);
   refreshStatusBarTooltip(statusBarItem, targetBranch, quantityThreshold);
 }
@@ -283,6 +292,42 @@ function refreshStatusBarTooltip(
 ): void {
   const newTooltipString = getTooltipString(targetBranch, quantityThreshold);
   statusBarItem.tooltip = newTooltipString;
+}
+
+function shouldSendNotification(
+  changesCount?: string,
+  changesThreshold?: string
+) {
+  const config = vscode.workspace.getConfiguration("changedLinesCount");
+  const shouldDisableNotifications = config.get<boolean>(
+    "disableNotifications"
+  );
+
+  if (shouldDisableNotifications !== undefined && shouldDisableNotifications)
+    return false;
+  if (!hasPassedThreshold(changesCount, changesThreshold)) return false;
+  if (isUserNotified) return false;
+
+  return true;
+}
+
+function hasPassedThreshold(
+  changesCount?: string,
+  changesThreshold?: string
+): boolean {
+  return (
+    changesThreshold !== undefined &&
+    changesCount !== undefined &&
+    +changesCount > +changesThreshold
+  );
+}
+
+function verifyNotificationLockValidity(
+  changesCount?: string,
+  changesThreshold?: string
+): void {
+  if (!hasPassedThreshold(changesCount, changesThreshold))
+    if (isUserNotified) isUserNotified = false;
 }
 
 export function deactivate() {}
