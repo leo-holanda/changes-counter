@@ -1,8 +1,8 @@
-# Changed Lines Counter
+# Changes Counter
 
 > A VS Code extension that counts the number of changes between your git working tree and a comparison branch. Also, it warns you when you exceed a changes quantity threshold, helping you control the size of your pull requests and making them more easy to review.
 
-![Changed Lines Counter screenshot](https://i.imgur.com/NQHj04x.png)
+![Changes Counter screenshot](https://i.imgur.com/NQHj04x.png)
 
 ## Contents
 
@@ -23,9 +23,9 @@
 
 This extension contributes the following settings:
 
-- `changedLinesCounter.disableStatusBarIconColorChange`: Enable/disable the status bar item color change when you exceed the changes quantity threshold.
+- `changesCounter.disableStatusBarIconColorChange`: Enable/disable the status bar item color change when you exceed the changes quantity threshold.
 
-- `changedLinesCounter.disableNotifications`: Enable/disable the notification when you exceed the changes quantity threshold.
+- `changesCounter.disableNotifications`: Enable/disable the notification when you exceed the changes quantity threshold.
 
 ## Contributing
 

@@ -15,7 +15,7 @@ export async function activate(context: vscode.ExtensionContext) {
   if (!(await isGitInitialized())) {
     vscode.commands.executeCommand(
       "setContext",
-      "changedLinesCounter.isGitInitialized",
+      "changesCounter.isGitInitialized",
       false
     );
     return;
@@ -23,7 +23,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   vscode.commands.executeCommand(
     "setContext",
-    "changedLinesCounter.isGitInitialized",
+    "changesCounter.isGitInitialized",
     true
   );
 
@@ -55,7 +55,7 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   vscode.workspace.onDidChangeConfiguration(async (config) => {
-    if (config.affectsConfiguration("changedLinesCounter"))
+    if (config.affectsConfiguration("changesCounter"))
       await refreshStatusBarItem(context, changesQuantityBarItem);
   });
 
@@ -176,7 +176,7 @@ async function getAvaliableBranches(): Promise<string[]> {
 
 function createSetComparisonBranchCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(
-    "changed-lines-counter.setComparisonBranch",
+    "changes-counter.setComparisonBranch",
     async () => {
       const comparisonBranchQuickPick = vscode.window.createQuickPick();
       comparisonBranchQuickPick.placeholder = "Choose a branch to be compared";
@@ -218,10 +218,10 @@ function getTooltipString(
   changesQuantityThreshold?: string
 ): vscode.MarkdownString {
   const setComparisonBranchCommandURI = vscode.Uri.parse(
-    `command:changed-lines-counter.setComparisonBranch`
+    `command:changes-counter.setComparisonBranch`
   );
   const setChangesQuantityThresholdCommandURI = vscode.Uri.parse(
-    `command:changed-lines-counter.setChangesQuantityThreshold`
+    `command:changes-counter.setChangesQuantityThreshold`
   );
   const markdownTooltip = new vscode.MarkdownString();
 
@@ -297,7 +297,7 @@ function getTooltipString(
 
 function createSetQuantityThresholdCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(
-    "changed-lines-counter.setChangesQuantityThreshold",
+    "changes-counter.setChangesQuantityThreshold",
     async () => {
       const changesQuantityThreshold = await vscode.window.showInputBox({
         title: "Insert the changes quantity threshold",
@@ -360,7 +360,7 @@ function refreshStatusBarCounter(
 ): void {
   statusBarItem.text = "Changes: " + (newChangesCount || "?");
 
-  const config = vscode.workspace.getConfiguration("changedLinesCounter");
+  const config = vscode.workspace.getConfiguration("changesCounter");
   const shouldDisableColorChange = config.get<boolean>(
     "disableStatusBarIconColorChange"
   );
@@ -395,7 +395,7 @@ function shouldSendNotification(
   changesCount?: string,
   changesQuantityThreshold?: string
 ) {
-  const config = vscode.workspace.getConfiguration("changedLinesCounter");
+  const config = vscode.workspace.getConfiguration("changesCounter");
   const shouldDisableNotifications = config.get<boolean>(
     "disableNotifications"
   );
