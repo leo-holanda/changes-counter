@@ -38,30 +38,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(createSetComparisonBranchCommand());
   context.subscriptions.push(createSetQuantityThresholdCommand());
 
-  eventEmitter.on("updateComparisonBranch", async (newComparisonBranch) => {
-    context.workspaceState.update("comparisonBranch", newComparisonBranch);
-    await refreshStatusBarItem(context, changesQuantityBarItem);
-  });
-
-  eventEmitter.on(
-    "updateChangesQuantityThreshold",
-    async (newQuantityThreshold) => {
-      context.workspaceState.update(
-        "changesQuantityThreshold",
-        newQuantityThreshold
-      );
-      await refreshStatusBarItem(context, changesQuantityBarItem);
-    }
-  );
-
-  vscode.workspace.onDidChangeConfiguration(async (config) => {
-    if (config.affectsConfiguration("changesCounter"))
-      await refreshStatusBarItem(context, changesQuantityBarItem);
-  });
-
-  vscode.workspace.onDidSaveTextDocument(async () => {
-    await refreshStatusBarItem(context, changesQuantityBarItem);
-  });
+  setUpEventListeners(context, changesQuantityBarItem);
 }
 
 function hasFoldersInWorkspace(): boolean {
@@ -425,6 +402,36 @@ function verifyNotificationLockValidity(
 ): void {
   if (!hasPassedThreshold(changesCount, changesQuantityThreshold))
     if (isUserNotified) isUserNotified = false;
+}
+
+function setUpEventListeners(
+  context: vscode.ExtensionContext,
+  statusBarItem: vscode.StatusBarItem
+): void {
+  eventEmitter.on("updateComparisonBranch", async (newComparisonBranch) => {
+    context.workspaceState.update("comparisonBranch", newComparisonBranch);
+    await refreshStatusBarItem(context, statusBarItem);
+  });
+
+  eventEmitter.on(
+    "updateChangesQuantityThreshold",
+    async (newQuantityThreshold) => {
+      context.workspaceState.update(
+        "changesQuantityThreshold",
+        newQuantityThreshold
+      );
+      await refreshStatusBarItem(context, statusBarItem);
+    }
+  );
+
+  vscode.workspace.onDidChangeConfiguration(async (config) => {
+    if (config.affectsConfiguration("changesCounter"))
+      await refreshStatusBarItem(context, statusBarItem);
+  });
+
+  vscode.workspace.onDidSaveTextDocument(async () => {
+    await refreshStatusBarItem(context, statusBarItem);
+  });
 }
 
 export function deactivate() {}
