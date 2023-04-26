@@ -7,7 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- I didn't think about anything beyond what is being added in 1.0.0. Maybe add support for not only comparison branches but also commits. But let's wait and see if anyone actually uses this extension.
+- Waiting for users feedback so I can improve the extesion.
+
+## [1.2.0] - 2023-04-26
+
+### Added
+
+- Add error messages in output channel
+
+## [1.1.0] - 2023-04-11
+
+### Added
+
+- Extension logo in VS Code Marketplace
 
 ## [1.0.0] - 2023-03-30
 
