@@ -7,6 +7,10 @@
 
 ![Changes Counter screenshot](https://i.imgur.com/NQHj04x.png)
 
+**For the extension to work, you must open a folder in your workspace that have git initialized.**
+
+If the extension isn't working, check the Changes Counter output channel in the panel for more info.
+
 ## Contents
 
 - [Features](#features)

@@ -4,6 +4,7 @@ import * as vscode from "vscode";
 
 const eventEmitter = new EventEmitter();
 let isUserNotified = false;
+const outputChannel = vscode.window.createOutputChannel("Changes Counter");
 
 interface ChangesData {
   insertions: string;
@@ -20,6 +21,8 @@ export async function activate(context: vscode.ExtensionContext) {
     );
     return;
   }
+
+  outputChannel.appendLine("The extension started successfully.");
 
   vscode.commands.executeCommand(
     "setContext",
@@ -50,6 +53,9 @@ function hasFoldersInWorkspace(): boolean {
 async function isGitInitialized(): Promise<boolean> {
   return new Promise((resolve, reject) => {
     if (!hasFoldersInWorkspace()) {
+      outputChannel.appendLine(
+        "The extension couldn't find a folder in your workspace. Open a folder that has git initialized for the extension to work."
+      );
       resolve(false);
       return;
     }
@@ -65,10 +71,17 @@ async function isGitInitialized(): Promise<boolean> {
     });
 
     gitCheck.stderr.on("data", (data: any) => {
+      outputChannel.appendLine("Error when checking if git is initialized.");
+      outputChannel.appendLine("Error message: " + data.toString());
       reject(false);
     });
 
     gitCheck.on("close", (code: any) => {
+      if (!isGitInitialized) {
+        outputChannel.appendLine(
+          "The extension didn't find a git repository in the folder you opened. Open a folder that has git initialized for the extension to work."
+        );
+      }
       resolve(isGitInitialized);
     });
   });
@@ -107,7 +120,8 @@ async function getChangesData(
     });
 
     diffHEAD.stderr.on("data", (data: any) => {
-      console.error(data.toString());
+      outputChannel.appendLine("Error when running git diff.");
+      outputChannel.appendLine("Error message: " + data.toString());
       reject("Error");
     });
 
@@ -142,6 +156,10 @@ async function getAvaliableBranches(): Promise<string[]> {
     });
 
     getAllBranches.stderr.on("data", (data: any) => {
+      outputChannel.appendLine(
+        "Error when getting avaliable branches to compare."
+      );
+      outputChannel.appendLine("Error message: " + data.toString());
       reject([]);
     });
 
