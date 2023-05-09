@@ -70,13 +70,13 @@ async function isGitInitialized(): Promise<boolean> {
       isGitInitialized = data.toString().includes("true");
     });
 
-    gitCheck.stderr.on("data", (data: any) => {
+    gitCheck.stderr.on("data", (data: Buffer) => {
       outputChannel.appendLine("Error when checking if git is initialized.");
       outputChannel.appendLine("Error message: " + data.toString());
       reject(false);
     });
 
-    gitCheck.on("close", (code: any) => {
+    gitCheck.on("close", () => {
       if (!isGitInitialized) {
         outputChannel.appendLine(
           "The extension didn't find a git repository in the folder you opened. Open a folder that has git initialized for the extension to work."
@@ -130,13 +130,13 @@ async function getChangesData(
       changesData = parseDiffOutput(data);
     });
 
-    diffHEAD.stderr.on("data", (data: any) => {
+    diffHEAD.stderr.on("data", (data: Buffer) => {
       outputChannel.appendLine("Error when running git diff.");
       outputChannel.appendLine("Error message: " + data.toString());
       reject("Error");
     });
 
-    diffHEAD.on("close", (code: any) => {
+    diffHEAD.on("close", () => {
       resolve(changesData);
     });
   });
@@ -166,7 +166,7 @@ async function getAvaliableBranches(): Promise<string[]> {
       });
     });
 
-    getAllBranches.stderr.on("data", (data: any) => {
+    getAllBranches.stderr.on("data", (data: Buffer) => {
       outputChannel.appendLine(
         "Error when getting avaliable branches to compare."
       );
@@ -174,7 +174,7 @@ async function getAvaliableBranches(): Promise<string[]> {
       reject([]);
     });
 
-    getAllBranches.on("close", (code: any) => {
+    getAllBranches.on("close", () => {
       resolve(avaliableBranches);
     });
   });
