@@ -1,4 +1,4 @@
-const { spawn } = require("child_process");
+import { spawn } from "child_process";
 import { EventEmitter } from "node:events";
 import * as vscode from "vscode";
 
