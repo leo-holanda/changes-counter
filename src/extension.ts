@@ -63,8 +63,14 @@ async function isGitInitialized(): Promise<boolean> {
     let isGitInitialized: boolean;
 
     const gitCheck = spawn("git", ["rev-parse", "--is-inside-work-tree"], {
-      cwd: vscode.workspace.workspaceFolders![0].uri.path,
+      cwd: vscode.workspace.workspaceFolders![0].uri.fsPath,
     });
+    
+    gitCheck.on("error", (err) => {
+      outputChannel.appendLine("Error when spawning child process to check git initialization.");
+      outputChannel.appendLine("Error name: " + err.name);
+      outputChannel.appendLine("Error message: " + err.message);
+    })
 
     gitCheck.stdout.on("data", (data: Buffer) => {
       isGitInitialized = data.toString().includes("true");
@@ -123,7 +129,7 @@ async function getChangesData(
     };
 
     const diffHEAD = spawn("git", ["diff", comparisonBranch, "--shortstat"], {
-      cwd: vscode.workspace.workspaceFolders![0].uri.path,
+      cwd: vscode.workspace.workspaceFolders![0].uri.fsPath,
     });
 
     diffHEAD.stdout.on("data", (data: Buffer) => {
@@ -147,7 +153,7 @@ async function getAvaliableBranches(): Promise<string[]> {
     let avaliableBranches: string[];
 
     const getAllBranches = spawn("git", ["branch", "-a"], {
-      cwd: vscode.workspace.workspaceFolders![0].uri.path,
+      cwd: vscode.workspace.workspaceFolders![0].uri.fsPath,
     });
 
     getAllBranches.stdout.on("data", (data: Buffer) => {
