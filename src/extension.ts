@@ -12,17 +12,47 @@ interface ChangesData {
   changesCount: string;
 }
 
+enum LogTypes {
+  INFO = "info",
+  ERROR = "error",
+  FATAL = "fatal",
+}
+
 export async function activate(context: vscode.ExtensionContext) {
-  if (!(await isGitInitialized())) {
+  sendMessageToOutputChannel(
+    "If you have encountered a bug, please report this log as an issue here: https://github.com/leo-holanda/changes-counter/issues.",
+    LogTypes.INFO
+  );
+  sendMessageToOutputChannel("The extension is starting...", LogTypes.INFO);
+
+  let isGitInitialized;
+  try {
+    isGitInitialized = await checkGitInitialization();
+  } catch (error) {
+    isGitInitialized = false;
+    sendMessageToOutputChannel(
+      "Error when checking if git is initialized.",
+      LogTypes.FATAL
+    );
+    sendMessageToOutputChannel(
+      ("Error message: " + error) as string,
+      LogTypes.FATAL
+    );
+  }
+
+  if (!isGitInitialized) {
+    sendMessageToOutputChannel(
+      "Open a folder that has git initialized for the extension to work.",
+      LogTypes.INFO
+    );
     vscode.commands.executeCommand(
       "setContext",
       "changesCounter.isGitInitialized",
       false
     );
+
     return;
   }
-
-  outputChannel.appendLine("The extension started successfully.");
 
   vscode.commands.executeCommand(
     "setContext",
@@ -50,46 +80,34 @@ function hasFoldersInWorkspace(): boolean {
     : false;
 }
 
-async function isGitInitialized(): Promise<boolean> {
+async function checkGitInitialization(): Promise<boolean> {
   return new Promise((resolve, reject) => {
     if (!hasFoldersInWorkspace()) {
-      outputChannel.appendLine(
-        "The extension couldn't find a folder in your workspace. Open a folder that has git initialized for the extension to work."
-      );
-      resolve(false);
+      reject("The extension couldn't find a folder in your workspace.");
       return;
     }
 
     let isGitInitialized: boolean;
 
-    const gitCheck = spawn("git", ["rev-parse", "--is-inside-work-tree"], {
-      cwd: vscode.workspace.workspaceFolders![0].uri.fsPath,
-    });
+    const gitChildProcess = spawn(
+      "git",
+      ["rev-parse", "--is-inside-work-tree"],
+      {
+        cwd: vscode.workspace.workspaceFolders![0].uri.fsPath,
+      }
+    );
 
-    gitCheck.on("error", (err) => {
-      outputChannel.appendLine(
-        "Error when spawning child process to check git initialization."
-      );
-      outputChannel.appendLine("Error name: " + err.name);
-      outputChannel.appendLine("Error message: " + err.message);
-    });
+    gitChildProcess.on("error", (err) => reject(err));
 
-    gitCheck.stdout.on("data", (data: Buffer) => {
+    gitChildProcess.stdout.on("data", (data: Buffer) => {
       isGitInitialized = data.toString().includes("true");
     });
 
-    gitCheck.stderr.on("data", (data: Buffer) => {
-      outputChannel.appendLine("Error when checking if git is initialized.");
-      outputChannel.appendLine("Error message: " + data.toString());
-      reject(false);
+    gitChildProcess.stderr.on("data", (data: Buffer) => {
+      reject(data.toString());
     });
 
-    gitCheck.on("close", () => {
-      if (!isGitInitialized) {
-        outputChannel.appendLine(
-          "The extension didn't find a git repository in the folder you opened. Open a folder that has git initialized for the extension to work."
-        );
-      }
+    gitChildProcess.on("close", () => {
       resolve(isGitInitialized);
     });
   });
@@ -120,7 +138,9 @@ async function getChangesData(
 ): Promise<ChangesData | undefined> {
   return new Promise((resolve, reject) => {
     if (comparisonBranch === undefined) {
-      resolve(undefined);
+      reject(
+        "A comparison branch wasn't defined. Please, define a comparison branch."
+      );
       return;
     }
 
@@ -130,35 +150,41 @@ async function getChangesData(
       changesCount: "0",
     };
 
-    const diffHEAD = spawn("git", ["diff", comparisonBranch, "--shortstat"], {
-      cwd: vscode.workspace.workspaceFolders![0].uri.fsPath,
-    });
+    const gitChildProcess = spawn(
+      "git",
+      ["diff", comparisonBranch, "--shortstat"],
+      {
+        cwd: vscode.workspace.workspaceFolders![0].uri.fsPath,
+      }
+    );
 
-    diffHEAD.stdout.on("data", (data: Buffer) => {
+    gitChildProcess.on("error", (err) => reject(err));
+
+    gitChildProcess.stdout.on("data", (data: Buffer) => {
       changesData = parseDiffOutput(data);
     });
 
-    diffHEAD.stderr.on("data", (data: Buffer) => {
-      outputChannel.appendLine("Error when running git diff.");
-      outputChannel.appendLine("Error message: " + data.toString());
-      reject("Error");
+    gitChildProcess.stderr.on("data", (data: Buffer) => {
+      reject(data.toString());
     });
 
-    diffHEAD.on("close", () => {
+    gitChildProcess.on("close", () => {
       resolve(changesData);
     });
   });
 }
 
-async function getAvaliableBranches(): Promise<string[]> {
+async function getAvailableBranches(): Promise<string[]> {
   return new Promise((resolve, reject) => {
     let avaliableBranches: string[];
 
-    const getAllBranches = spawn("git", ["branch", "-a"], {
+    const gitChildProcess = spawn("git", ["branch", "-a"], {
       cwd: vscode.workspace.workspaceFolders![0].uri.fsPath,
     });
 
-    getAllBranches.stdout.on("data", (data: Buffer) => {
+    gitChildProcess.on("error", (err) => reject(err));
+
+    gitChildProcess.stdout.on("data", (data: Buffer) => {
       const branchesList = data.toString().split(/\r?\n/);
       let validBranches = branchesList.filter(
         (branch) => branch && branch[0] !== "*"
@@ -174,15 +200,11 @@ async function getAvaliableBranches(): Promise<string[]> {
       });
     });
 
-    getAllBranches.stderr.on("data", (data: Buffer) => {
-      outputChannel.appendLine(
-        "Error when getting avaliable branches to compare."
-      );
-      outputChannel.appendLine("Error message: " + data.toString());
-      reject([]);
+    gitChildProcess.stderr.on("data", (data: Buffer) => {
+      reject(data.toString());
     });
 
-    getAllBranches.on("close", () => {
+    gitChildProcess.on("close", () => {
       resolve(avaliableBranches);
     });
   });
@@ -194,7 +216,22 @@ function createSetComparisonBranchCommand(): vscode.Disposable {
     async () => {
       const comparisonBranchQuickPick = vscode.window.createQuickPick();
       comparisonBranchQuickPick.placeholder = "Choose a branch to be compared";
-      const avaliableBranches = await getAvaliableBranches();
+
+      let avaliableBranches: string[];
+      try {
+        avaliableBranches = await getAvailableBranches();
+      } catch (error) {
+        avaliableBranches = [];
+        sendMessageToOutputChannel(
+          "Error when getting the available branches for comparison.",
+          LogTypes.ERROR
+        );
+        sendMessageToOutputChannel(
+          ("Error message: " + error) as string,
+          LogTypes.ERROR
+        );
+      }
+
       const quickPickItems = avaliableBranches.map((branch) => {
         return { label: branch };
       });
@@ -340,7 +377,19 @@ async function refreshStatusBarItem(
     "changesQuantityThreshold"
   );
 
-  const changesData = await getChangesData(comparisonBranch);
+  let changesData;
+  try {
+    changesData = await getChangesData(comparisonBranch);
+  } catch (error) {
+    sendMessageToOutputChannel(
+      "Error when counting the changes between your working tree and the comparison branch.",
+      LogTypes.ERROR
+    );
+    sendMessageToOutputChannel(
+      ("Error message: " + error) as string,
+      LogTypes.ERROR
+    );
+  }
 
   verifyNotificationLockValidity(
     changesData?.changesCount,
@@ -469,6 +518,15 @@ function setUpEventListeners(
   vscode.workspace.onDidSaveTextDocument(async () => {
     await refreshStatusBarItem(context, statusBarItem);
   });
+}
+
+function sendMessageToOutputChannel(message: string, type: LogTypes): void {
+  const now = new Date().toISOString().split("T");
+  const date = now[0];
+  const time = now[1].slice(0, -1);
+  outputChannel.appendLine(
+    date + " " + time + " " + "[" + type + "] " + message
+  );
 }
 
 export function deactivate() {}
