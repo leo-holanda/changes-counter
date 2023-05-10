@@ -65,12 +65,14 @@ async function isGitInitialized(): Promise<boolean> {
     const gitCheck = spawn("git", ["rev-parse", "--is-inside-work-tree"], {
       cwd: vscode.workspace.workspaceFolders![0].uri.fsPath,
     });
-    
+
     gitCheck.on("error", (err) => {
-      outputChannel.appendLine("Error when spawning child process to check git initialization.");
+      outputChannel.appendLine(
+        "Error when spawning child process to check git initialization."
+      );
       outputChannel.appendLine("Error name: " + err.name);
       outputChannel.appendLine("Error message: " + err.message);
-    })
+    });
 
     gitCheck.stdout.on("data", (data: Buffer) => {
       isGitInitialized = data.toString().includes("true");
