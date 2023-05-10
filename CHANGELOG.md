@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Waiting for users feedback so I can improve the extesion.
 
+## [1.3.0] - 2023-05-11
+
+### Changed
+
+- Improve output channel messages
+
 ## [1.2.2] - 2023-05-10
 
 ### Fixed
