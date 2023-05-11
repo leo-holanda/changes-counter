@@ -2,10 +2,6 @@ import { spawn } from "child_process";
 import { EventEmitter } from "node:events";
 import * as vscode from "vscode";
 
-const eventEmitter = new EventEmitter();
-let isUserNotified = false;
-const outputChannel = vscode.window.createOutputChannel("Changes Counter");
-
 interface ChangesData {
   insertions: string;
   deletions: string;
@@ -18,7 +14,29 @@ enum LogTypes {
   FATAL = "fatal",
 }
 
+const eventEmitter = new EventEmitter();
+let isUserNotified = false;
+const outputChannel = vscode.window.createOutputChannel("Changes Counter");
+
 export async function activate(context: vscode.ExtensionContext) {
+  let hasExtensionStarted = await startExtension();
+  if (!hasExtensionStarted) return;
+
+  const changesQuantityBarItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Left,
+    10
+  );
+  context.subscriptions.push(changesQuantityBarItem);
+  await refreshStatusBarItem(context, changesQuantityBarItem);
+  changesQuantityBarItem.show();
+
+  context.subscriptions.push(createSetComparisonBranchCommand());
+  context.subscriptions.push(createSetQuantityThresholdCommand());
+
+  setUpEventListeners(context, changesQuantityBarItem);
+}
+
+async function startExtension(): Promise<boolean> {
   sendMessageToOutputChannel(
     "If you have encountered a bug, please report this log as an issue here: https://github.com/leo-holanda/changes-counter/issues.",
     LogTypes.INFO
@@ -51,7 +69,7 @@ export async function activate(context: vscode.ExtensionContext) {
       false
     );
 
-    return;
+    return false;
   }
 
   vscode.commands.executeCommand(
@@ -60,18 +78,7 @@ export async function activate(context: vscode.ExtensionContext) {
     true
   );
 
-  const changesQuantityBarItem = vscode.window.createStatusBarItem(
-    vscode.StatusBarAlignment.Left,
-    10
-  );
-  context.subscriptions.push(changesQuantityBarItem);
-  await refreshStatusBarItem(context, changesQuantityBarItem);
-  changesQuantityBarItem.show();
-
-  context.subscriptions.push(createSetComparisonBranchCommand());
-  context.subscriptions.push(createSetQuantityThresholdCommand());
-
-  setUpEventListeners(context, changesQuantityBarItem);
+  return true;
 }
 
 function hasFoldersInWorkspace(): boolean {
