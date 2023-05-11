@@ -17,10 +17,13 @@ enum LogTypes {
 const eventEmitter = new EventEmitter();
 let isUserNotified = false;
 const outputChannel = vscode.window.createOutputChannel("Changes Counter");
+let filesToIgnore: string[] = [];
 
 export async function activate(context: vscode.ExtensionContext) {
   let hasExtensionStarted = await startExtension();
   if (!hasExtensionStarted) return;
+
+  filesToIgnore.push(...(await getFilesToIgnore()));
 
   const changesQuantityBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Left,
@@ -534,6 +537,19 @@ function sendMessageToOutputChannel(message: string, type: LogTypes): void {
   outputChannel.appendLine(
     date + " " + time + " " + "[" + type + "] " + message
   );
+}
+
+async function getFilesToIgnore(): Promise<string[]> {
+  const matchedFiles = await vscode.workspace.findFiles(".cgignore");
+  if (matchedFiles.length > 0) {
+    const cgIgnoreFileContent = await vscode.workspace.fs.readFile(
+      matchedFiles[0]
+    );
+
+    return cgIgnoreFileContent.toString().split("\n");
+  }
+
+  return [];
 }
 
 export function deactivate() {}
