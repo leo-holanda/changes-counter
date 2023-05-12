@@ -556,7 +556,11 @@ async function getDiffExclusionParameters(): Promise<string[]> {
 
   let diffExclusionParameters: string[] = ["-- ."];
   diffExclusionParameters = diffExclusionParameters.concat(
-    filesToIgnore.map((fileName) => "':(exclude)" + fileName + "'")
+    filesToIgnore.map((fileName) => {
+      return process.platform === "win32"
+        ? ":(exclude)" + fileName + ""
+        : "':(exclude)" + fileName + "'";
+    })
   );
 
   return diffExclusionParameters;
