@@ -541,9 +541,16 @@ function sendMessageToOutputChannel(message: string, type: LogTypes): void {
 }
 
 async function getFilesToIgnore(): Promise<string[]> {
-  const matchedFiles = await vscode.workspace.findFiles(".cgignore");
-  if (matchedFiles.length === 0) return [];
+  const matchedFiles = await vscode.workspace.findFiles(".ccignore");
+  if (matchedFiles.length === 0) {
+    sendMessageToOutputChannel("No ignore file was found.", LogTypes.INFO);
+    return [];
+  }
 
+  sendMessageToOutputChannel(
+    "An ignore file was found. Files and patterns defined in it will be ignored when counting changes.",
+    LogTypes.INFO
+  );
   const cgIgnoreFileContent = await vscode.workspace.fs.readFile(
     matchedFiles[0]
   );
