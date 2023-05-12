@@ -17,13 +17,13 @@ enum LogTypes {
 const eventEmitter = new EventEmitter();
 let isUserNotified = false;
 const outputChannel = vscode.window.createOutputChannel("Changes Counter");
-let filesToIgnore: string[] = [];
+let diffExclusionParameters: string[] = [];
 
 export async function activate(context: vscode.ExtensionContext) {
   let hasExtensionStarted = await startExtension();
   if (!hasExtensionStarted) return;
 
-  filesToIgnore.push(...(await getFilesToIgnore()));
+  diffExclusionParameters.push(...(await getDiffExclusionParameters()));
 
   const changesQuantityBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Left,
@@ -162,9 +162,10 @@ async function getChangesData(
 
     const gitChildProcess = spawn(
       "git",
-      ["diff", comparisonBranch, "--shortstat"],
+      ["diff", comparisonBranch, "--shortstat", ...diffExclusionParameters],
       {
         cwd: vscode.workspace.workspaceFolders![0].uri.fsPath,
+        shell: true, // Diff exclusion parameters doesn't work without this
       }
     );
 
@@ -541,15 +542,24 @@ function sendMessageToOutputChannel(message: string, type: LogTypes): void {
 
 async function getFilesToIgnore(): Promise<string[]> {
   const matchedFiles = await vscode.workspace.findFiles(".cgignore");
-  if (matchedFiles.length > 0) {
-    const cgIgnoreFileContent = await vscode.workspace.fs.readFile(
-      matchedFiles[0]
-    );
+  if (matchedFiles.length === 0) return [];
 
-    return cgIgnoreFileContent.toString().split("\n");
-  }
+  const cgIgnoreFileContent = await vscode.workspace.fs.readFile(
+    matchedFiles[0]
+  );
+  return cgIgnoreFileContent.toString().split("\n");
+}
 
-  return [];
+async function getDiffExclusionParameters(): Promise<string[]> {
+  const filesToIgnore = await getFilesToIgnore();
+  if (filesToIgnore.length === 0) return [];
+
+  let diffExclusionParameters: string[] = ["-- ."];
+  diffExclusionParameters = diffExclusionParameters.concat(
+    filesToIgnore.map((fileName) => "':(exclude)" + fileName + "'")
+  );
+
+  return diffExclusionParameters;
 }
 
 export function deactivate() {}
