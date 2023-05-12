@@ -18,12 +18,13 @@ const eventEmitter = new EventEmitter();
 let isUserNotified = false;
 const outputChannel = vscode.window.createOutputChannel("Changes Counter");
 let diffExclusionParameters: string[] = [];
+let hasLoggedIgnoreFileFirstCheck = false;
 
 export async function activate(context: vscode.ExtensionContext) {
   let hasExtensionStarted = await startExtension();
   if (!hasExtensionStarted) return;
 
-  diffExclusionParameters.push(...(await getDiffExclusionParameters()));
+  diffExclusionParameters = await getDiffExclusionParameters();
 
   const changesQuantityBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Left,
@@ -526,7 +527,49 @@ function setUpEventListeners(
       await refreshStatusBarItem(context, statusBarItem);
   });
 
-  vscode.workspace.onDidSaveTextDocument(async () => {
+  vscode.workspace.onDidSaveTextDocument(async (document) => {
+    /*
+      onDidSaveTextDocument event is emitted before watcher's onDidChange.
+      Thus, updating the status item with older values. This condition is
+      necessary to update status item with values only after exclusion
+      parameters are updated and to avoid recalling the refresh function.
+    */
+    if (document.fileName.includes(".ccignore")) return;
+    await refreshStatusBarItem(context, statusBarItem);
+  });
+
+  const watcher = vscode.workspace.createFileSystemWatcher(
+    new vscode.RelativePattern(
+      vscode.workspace.workspaceFolders![0],
+      ".ccignore"
+    )
+  );
+
+  watcher.onDidCreate(async () => {
+    sendMessageToOutputChannel(
+      "An ignore file was created. Files and patterns defined in it will now be ignored when counting changes.",
+      LogTypes.INFO
+    );
+    diffExclusionParameters = await getDiffExclusionParameters();
+    await refreshStatusBarItem(context, statusBarItem);
+  });
+
+  watcher.onDidChange(async () => {
+    console.log("onDidChange");
+    sendMessageToOutputChannel(
+      "The ignore file was changed. Files and patterns to be ignore will be updated.",
+      LogTypes.INFO
+    );
+    diffExclusionParameters = await getDiffExclusionParameters();
+    await refreshStatusBarItem(context, statusBarItem);
+  });
+
+  watcher.onDidDelete(async () => {
+    sendMessageToOutputChannel(
+      "The ignore file was deleted. There will be no files and patterns being ignored when counting changes.",
+      LogTypes.INFO
+    );
+    diffExclusionParameters = [];
     await refreshStatusBarItem(context, statusBarItem);
   });
 }
@@ -547,10 +590,13 @@ async function getFilesToIgnore(): Promise<string[]> {
     return [];
   }
 
-  sendMessageToOutputChannel(
-    "An ignore file was found. Files and patterns defined in it will be ignored when counting changes.",
-    LogTypes.INFO
-  );
+  if (!hasLoggedIgnoreFileFirstCheck) {
+    sendMessageToOutputChannel(
+      "An ignore file was found. Files and patterns defined in it will be ignored when counting changes.",
+      LogTypes.INFO
+    );
+    hasLoggedIgnoreFileFirstCheck = true;
+  }
   const cgIgnoreFileContent = await vscode.workspace.fs.readFile(
     matchedFiles[0]
   );
@@ -559,7 +605,7 @@ async function getFilesToIgnore(): Promise<string[]> {
 
 async function getDiffExclusionParameters(): Promise<string[]> {
   const filesToIgnore = await getFilesToIgnore();
-  if (filesToIgnore.length === 0) return [];
+  if (filesToIgnore.length === 0 || filesToIgnore[0] === "") return [];
 
   let diffExclusionParameters: string[] = ["-- ."];
   diffExclusionParameters = diffExclusionParameters.concat(
