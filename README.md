@@ -26,6 +26,7 @@ If the extension isn't working, check the Changes Counter output channel in the 
 - When you exceed a changes quantity threshold:
   - The status bar item color changes
   - A notification is sent to warn you
+- Creating an ignore file allows the extension to ignore files and patterns when counting changes
 
 ## Installation
 
@@ -34,6 +35,10 @@ Open VS Code, press Ctrl + P and enter this command
 `ext install LeonardoHolanda.changes-counter`
 
 You can also search for "Changes Counter" in the Extensions Tab search, find the extension and install it there.
+
+## Ignore file
+
+The ignore file name must be **.ccignore**. For this feature to work, you must create the file in the root of your workspace folder. Then, you can write the files path and patterns you want to ignore like it is written in the .gitignore file.
 
 ## Extension Settings
 
