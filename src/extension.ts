@@ -14,6 +14,8 @@ enum LogTypes {
   FATAL = "fatal",
 }
 
+const IGNORE_FILE_NAME = ".ccignore";
+
 const eventEmitter = new EventEmitter();
 let isUserNotified = false;
 const outputChannel = vscode.window.createOutputChannel("Changes Counter");
@@ -534,14 +536,14 @@ function setUpEventListeners(
       necessary to update status item with values only after exclusion
       parameters are updated and to avoid recalling the refresh function.
     */
-    if (document.fileName.includes(".ccignore")) return;
+    if (document.fileName.includes(IGNORE_FILE_NAME)) return;
     await refreshStatusBarItem(context, statusBarItem);
   });
 
   const watcher = vscode.workspace.createFileSystemWatcher(
     new vscode.RelativePattern(
       vscode.workspace.workspaceFolders![0],
-      ".ccignore"
+      IGNORE_FILE_NAME
     )
   );
 
@@ -584,7 +586,7 @@ function sendMessageToOutputChannel(message: string, type: LogTypes): void {
 }
 
 async function getFilesToIgnore(): Promise<string[]> {
-  const matchedFiles = await vscode.workspace.findFiles(".ccignore");
+  const matchedFiles = await vscode.workspace.findFiles(IGNORE_FILE_NAME);
   if (matchedFiles.length === 0) {
     sendMessageToOutputChannel("No ignore file was found.", LogTypes.INFO);
     return [];
