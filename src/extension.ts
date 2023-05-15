@@ -54,14 +54,8 @@ async function startExtension(): Promise<boolean> {
     isGitInitialized = await checkGitInitialization();
   } catch (error) {
     isGitInitialized = false;
-    sendMessageToOutputChannel(
-      "Error when checking if git is initialized.",
-      LogTypes.FATAL
-    );
-    sendMessageToOutputChannel(
-      ("Error message: " + error) as string,
-      LogTypes.FATAL
-    );
+    sendMessageToOutputChannel("Error when checking if git is initialized.", LogTypes.FATAL);
+    sendMessageToOutputChannel(("Error message: " + error) as string, LogTypes.FATAL);
   }
 
   if (!isGitInitialized) {
@@ -69,28 +63,18 @@ async function startExtension(): Promise<boolean> {
       "Open a folder that has git initialized for the extension to work.",
       LogTypes.INFO
     );
-    vscode.commands.executeCommand(
-      "setContext",
-      "changesCounter.isGitInitialized",
-      false
-    );
+    vscode.commands.executeCommand("setContext", "changesCounter.isGitInitialized", false);
 
     return false;
   }
 
-  vscode.commands.executeCommand(
-    "setContext",
-    "changesCounter.isGitInitialized",
-    true
-  );
+  vscode.commands.executeCommand("setContext", "changesCounter.isGitInitialized", true);
 
   return true;
 }
 
 function hasFoldersInWorkspace(): boolean {
-  return vscode.workspace.workspaceFolders
-    ? vscode.workspace.workspaceFolders.length > 0
-    : false;
+  return vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders.length > 0 : false;
 }
 
 async function checkGitInitialization(): Promise<boolean> {
@@ -102,13 +86,9 @@ async function checkGitInitialization(): Promise<boolean> {
 
     let isGitInitialized: boolean;
 
-    const gitChildProcess = spawn(
-      "git",
-      ["rev-parse", "--is-inside-work-tree"],
-      {
-        cwd: vscode.workspace.workspaceFolders![0].uri.fsPath,
-      }
-    );
+    const gitChildProcess = spawn("git", ["rev-parse", "--is-inside-work-tree"], {
+      cwd: vscode.workspace.workspaceFolders![0].uri.fsPath,
+    });
 
     gitChildProcess.on("error", (err) => reject(err));
 
@@ -139,21 +119,15 @@ function parseDiffOutput(diffOutput: Buffer): ChangesData {
       diffOutputData.deletions = splittedChangesData[0];
   });
 
-  diffOutputData.changesCount = (
-    +diffOutputData.insertions + +diffOutputData.deletions
-  ).toString();
+  diffOutputData.changesCount = (+diffOutputData.insertions + +diffOutputData.deletions).toString();
 
   return diffOutputData;
 }
 
-async function getChangesData(
-  comparisonBranch?: string
-): Promise<ChangesData | undefined> {
+async function getChangesData(comparisonBranch?: string): Promise<ChangesData | undefined> {
   return new Promise((resolve, reject) => {
     if (comparisonBranch === undefined) {
-      reject(
-        "A comparison branch wasn't defined. Please, define a comparison branch."
-      );
+      reject("A comparison branch wasn't defined. Please, define a comparison branch.");
       return;
     }
 
@@ -200,9 +174,7 @@ async function getAvailableBranches(): Promise<string[]> {
 
     gitChildProcess.stdout.on("data", (data: Buffer) => {
       const branchesList = data.toString().split(/\r?\n/);
-      let validBranches = branchesList.filter(
-        (branch) => branch && branch[0] !== "*"
-      );
+      let validBranches = branchesList.filter((branch) => branch && branch[0] !== "*");
 
       const removeRemoteBranchArrow = new RegExp("( -> ).*");
       /*
@@ -225,56 +197,46 @@ async function getAvailableBranches(): Promise<string[]> {
 }
 
 function createSetComparisonBranchCommand(): vscode.Disposable {
-  return vscode.commands.registerCommand(
-    "changes-counter.setComparisonBranch",
-    async () => {
-      const comparisonBranchQuickPick = vscode.window.createQuickPick();
-      comparisonBranchQuickPick.placeholder = "Choose a branch to be compared";
+  return vscode.commands.registerCommand("changes-counter.setComparisonBranch", async () => {
+    const comparisonBranchQuickPick = vscode.window.createQuickPick();
+    comparisonBranchQuickPick.placeholder = "Choose a branch to be compared";
 
-      let avaliableBranches: string[];
-      try {
-        avaliableBranches = await getAvailableBranches();
-      } catch (error) {
-        avaliableBranches = [];
-        sendMessageToOutputChannel(
-          "Error when getting the available branches for comparison.",
-          LogTypes.ERROR
-        );
-        sendMessageToOutputChannel(
-          ("Error message: " + error) as string,
-          LogTypes.ERROR
-        );
-      }
-
-      const quickPickItems = avaliableBranches.map((branch) => {
-        return { label: branch };
-      });
-
-      const firstRemoteBranchIndex = avaliableBranches.findIndex((branch) =>
-        branch.includes("remotes")
+    let avaliableBranches: string[];
+    try {
+      avaliableBranches = await getAvailableBranches();
+    } catch (error) {
+      avaliableBranches = [];
+      sendMessageToOutputChannel(
+        "Error when getting the available branches for comparison.",
+        LogTypes.ERROR
       );
-      if (firstRemoteBranchIndex) {
-        const remoteBranchesSeparator: vscode.QuickPickItem = {
-          label: "Remotes",
-          kind: vscode.QuickPickItemKind.Separator,
-        };
-        quickPickItems.splice(
-          firstRemoteBranchIndex,
-          0,
-          remoteBranchesSeparator
-        );
-      }
-
-      comparisonBranchQuickPick.items = quickPickItems;
-
-      comparisonBranchQuickPick.onDidChangeSelection((selection) => {
-        eventEmitter.emit("updateComparisonBranch", selection[0].label);
-        comparisonBranchQuickPick.dispose();
-      });
-
-      comparisonBranchQuickPick.show();
+      sendMessageToOutputChannel(("Error message: " + error) as string, LogTypes.ERROR);
     }
-  );
+
+    const quickPickItems = avaliableBranches.map((branch) => {
+      return { label: branch };
+    });
+
+    const firstRemoteBranchIndex = avaliableBranches.findIndex((branch) =>
+      branch.includes("remotes")
+    );
+    if (firstRemoteBranchIndex) {
+      const remoteBranchesSeparator: vscode.QuickPickItem = {
+        label: "Remotes",
+        kind: vscode.QuickPickItemKind.Separator,
+      };
+      quickPickItems.splice(firstRemoteBranchIndex, 0, remoteBranchesSeparator);
+    }
+
+    comparisonBranchQuickPick.items = quickPickItems;
+
+    comparisonBranchQuickPick.onDidChangeSelection((selection) => {
+      eventEmitter.emit("updateComparisonBranch", selection[0].label);
+      comparisonBranchQuickPick.dispose();
+    });
+
+    comparisonBranchQuickPick.show();
+  });
 }
 
 function getTooltipString(
@@ -336,9 +298,7 @@ function getTooltipString(
 
   if (!changesQuantityThreshold) {
     markdownTooltip.appendMarkdown("<br>");
-    markdownTooltip.appendMarkdown(
-      `$(alert) Set the changes quantity threshold.`
-    );
+    markdownTooltip.appendMarkdown(`$(alert) Set the changes quantity threshold.`);
   }
 
   markdownTooltip.appendMarkdown(
@@ -373,10 +333,7 @@ function createSetQuantityThresholdCommand(): vscode.Disposable {
         },
       });
 
-      eventEmitter.emit(
-        "updateChangesQuantityThreshold",
-        changesQuantityThreshold
-      );
+      eventEmitter.emit("updateChangesQuantityThreshold", changesQuantityThreshold);
     }
   );
 }
@@ -385,11 +342,8 @@ async function refreshStatusBarItem(
   context: vscode.ExtensionContext,
   statusBarItem: vscode.StatusBarItem
 ): Promise<void> {
-  const comparisonBranch =
-    context.workspaceState.get<string>("comparisonBranch");
-  const changesQuantityThreshold = context.workspaceState.get<string>(
-    "changesQuantityThreshold"
-  );
+  const comparisonBranch = context.workspaceState.get<string>("comparisonBranch");
+  const changesQuantityThreshold = context.workspaceState.get<string>("changesQuantityThreshold");
 
   let changesData;
   try {
@@ -399,35 +353,16 @@ async function refreshStatusBarItem(
       "Error when counting the changes between your working tree and the comparison branch.",
       LogTypes.ERROR
     );
-    sendMessageToOutputChannel(
-      ("Error message: " + error) as string,
-      LogTypes.ERROR
-    );
+    sendMessageToOutputChannel(("Error message: " + error) as string, LogTypes.ERROR);
   }
 
-  verifyNotificationLockValidity(
-    changesData?.changesCount,
-    changesQuantityThreshold
-  );
-  if (
-    shouldSendNotification(changesData?.changesCount, changesQuantityThreshold)
-  ) {
-    vscode.window.showWarningMessage(
-      "You have passed the changes quantity threshold."
-    );
+  verifyNotificationLockValidity(changesData?.changesCount, changesQuantityThreshold);
+  if (shouldSendNotification(changesData?.changesCount, changesQuantityThreshold)) {
+    vscode.window.showWarningMessage("You have passed the changes quantity threshold.");
     isUserNotified = true;
   }
-  refreshStatusBarCounter(
-    statusBarItem,
-    changesData?.changesCount,
-    changesQuantityThreshold
-  );
-  refreshStatusBarTooltip(
-    statusBarItem,
-    comparisonBranch,
-    changesQuantityThreshold,
-    changesData
-  );
+  refreshStatusBarCounter(statusBarItem, changesData?.changesCount, changesQuantityThreshold);
+  refreshStatusBarTooltip(statusBarItem, comparisonBranch, changesQuantityThreshold, changesData);
 }
 
 function refreshStatusBarCounter(
@@ -438,20 +373,11 @@ function refreshStatusBarCounter(
   statusBarItem.text = "Changes: " + (newChangesCount || "?");
 
   const config = vscode.workspace.getConfiguration("changesCounter");
-  const shouldDisableColorChange = config.get<boolean>(
-    "disableStatusBarIconColorChange"
-  );
+  const shouldDisableColorChange = config.get<boolean>("disableStatusBarIconColorChange");
 
-  if (
-    !shouldDisableColorChange &&
-    hasPassedThreshold(newChangesCount, changesQuantityThreshold)
-  ) {
-    statusBarItem.backgroundColor = new vscode.ThemeColor(
-      "statusBarItem.warningBackground"
-    );
-  } else {
-    statusBarItem.backgroundColor = undefined;
-  }
+  if (!shouldDisableColorChange && hasPassedThreshold(newChangesCount, changesQuantityThreshold))
+    statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
+  else statusBarItem.backgroundColor = undefined;
 }
 
 function refreshStatusBarTooltip(
@@ -468,27 +394,18 @@ function refreshStatusBarTooltip(
   statusBarItem.tooltip = newTooltipString;
 }
 
-function shouldSendNotification(
-  changesCount?: string,
-  changesQuantityThreshold?: string
-) {
+function shouldSendNotification(changesCount?: string, changesQuantityThreshold?: string) {
   const config = vscode.workspace.getConfiguration("changesCounter");
-  const shouldDisableNotifications = config.get<boolean>(
-    "disableNotifications"
-  );
+  const shouldDisableNotifications = config.get<boolean>("disableNotifications");
 
-  if (shouldDisableNotifications !== undefined && shouldDisableNotifications)
-    return false;
+  if (shouldDisableNotifications !== undefined && shouldDisableNotifications) return false;
   if (!hasPassedThreshold(changesCount, changesQuantityThreshold)) return false;
   if (isUserNotified) return false;
 
   return true;
 }
 
-function hasPassedThreshold(
-  changesCount?: string,
-  changesQuantityThreshold?: string
-): boolean {
+function hasPassedThreshold(changesCount?: string, changesQuantityThreshold?: string): boolean {
   return (
     changesQuantityThreshold !== undefined &&
     changesCount !== undefined &&
@@ -513,16 +430,10 @@ function setUpEventListeners(
     await refreshStatusBarItem(context, statusBarItem);
   });
 
-  eventEmitter.on(
-    "updateChangesQuantityThreshold",
-    async (newQuantityThreshold) => {
-      context.workspaceState.update(
-        "changesQuantityThreshold",
-        newQuantityThreshold
-      );
-      await refreshStatusBarItem(context, statusBarItem);
-    }
-  );
+  eventEmitter.on("updateChangesQuantityThreshold", async (newQuantityThreshold) => {
+    context.workspaceState.update("changesQuantityThreshold", newQuantityThreshold);
+    await refreshStatusBarItem(context, statusBarItem);
+  });
 
   vscode.workspace.onDidChangeConfiguration(async (config) => {
     if (config.affectsConfiguration("changesCounter"))
@@ -541,10 +452,7 @@ function setUpEventListeners(
   });
 
   const watcher = vscode.workspace.createFileSystemWatcher(
-    new vscode.RelativePattern(
-      vscode.workspace.workspaceFolders![0],
-      IGNORE_FILE_NAME
-    )
+    new vscode.RelativePattern(vscode.workspace.workspaceFolders![0], IGNORE_FILE_NAME)
   );
 
   watcher.onDidCreate(async () => {
@@ -580,9 +488,7 @@ function sendMessageToOutputChannel(message: string, type: LogTypes): void {
   const now = new Date().toISOString().split("T");
   const date = now[0];
   const time = now[1].slice(0, -1);
-  outputChannel.appendLine(
-    date + " " + time + " " + "[" + type + "] " + message
-  );
+  outputChannel.appendLine(date + " " + time + " " + "[" + type + "] " + message);
 }
 
 async function getFilesToIgnore(): Promise<string[]> {
@@ -599,9 +505,7 @@ async function getFilesToIgnore(): Promise<string[]> {
     );
     hasLoggedIgnoreFileFirstCheck = true;
   }
-  const cgIgnoreFileContent = await vscode.workspace.fs.readFile(
-    matchedFiles[0]
-  );
+  const cgIgnoreFileContent = await vscode.workspace.fs.readFile(matchedFiles[0]);
   return cgIgnoreFileContent.toString().split("\n");
 }
 
