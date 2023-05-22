@@ -4,7 +4,7 @@
 # Then, follow the VS Code CLI instructions on how to connect to the remote enviroment
 
 FROM alpine:latest
-WORKDIR /root/changes-counter
+WORKDIR /changes-counter
 COPY . .
 
 RUN apk add git
