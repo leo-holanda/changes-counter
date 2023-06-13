@@ -1,5 +1,5 @@
 # To build an image, navigate to the repository root and run: docker build -t changes-counter -f .devcontainer/Dockerfile .
-# To create a container, run: docker run -it --rm changes-counter
+# To create a container, run: docker run --rm changes-counter
 # Then, follow the VS Code CLI instructions on how to connect to the remote enviroment
 
 FROM ubuntu:latest
@@ -20,4 +20,4 @@ RUN curl -Lk 'https://code.visualstudio.com/sha/download?build=stable&os=cli-alp
     && rm vscode_cli.tar.gz \
     && apt purge --auto-remove -y curl
 
-ENTRYPOINT ./code tunnel
+ENTRYPOINT ./code tunnel --accept-server-license-terms --random-name
