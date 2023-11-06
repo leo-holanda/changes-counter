@@ -141,8 +141,9 @@ export class Extension {
       comparisonBranchQuickPick.items = quickPickItems;
 
       comparisonBranchQuickPick.onDidChangeSelection((selection) => {
-        //TODO Stop using event emitters
         comparisonBranchQuickPick.dispose();
+        this.context.workspaceState.update("comparisonBranch", selection[0].label);
+        this.updateBarItem();
       });
 
       comparisonBranchQuickPick.show();
@@ -162,14 +163,17 @@ export class Extension {
           },
         });
 
-        //TODO Stop using event emitters
+        this.context.workspaceState.update("changesQuantityThreshold", changesQuantityThreshold);
+        this.updateBarItem();
       }
     );
   }
 
   private async startBarItem(): Promise<void> {
     this.barItem.start();
+  }
 
+  private async updateBarItem(): Promise<void> {
     try {
       const changesData = await this.gitOperator.getChangesData();
       this.barItem.updateItemData(changesData);
