@@ -15,7 +15,7 @@ export class Extension {
   constructor(context: vscode.ExtensionContext) {
     this.logger = Logger.getInstance();
     this.context = context;
-    this.gitOperator = new GitOperator();
+    this.gitOperator = new GitOperator(context);
     this.notificator = new Notificator();
     this.barItem = new BarItem(context);
     this.logger.log("Extension was constructed.", LogTypes.INFO);
@@ -98,6 +98,7 @@ export class Extension {
   private start(): void {
     this.logger.log("Extension start will proceed.", LogTypes.INFO);
     this.addCommands();
+    this.startBarItem();
   }
 
   private addCommands(): void {
@@ -164,5 +165,20 @@ export class Extension {
         //TODO Stop using event emitters
       }
     );
+  }
+
+  private async startBarItem(): Promise<void> {
+    this.barItem.start();
+
+    try {
+      const changesData = await this.gitOperator.getChangesData();
+      this.barItem.updateItemData(changesData);
+    } catch (error) {
+      this.logger.log(
+        "An error was ocurred while the extension was getting your changes data.",
+        LogTypes.ERROR
+      );
+      this.logger.log(error as string, LogTypes.ERROR);
+    }
   }
 }

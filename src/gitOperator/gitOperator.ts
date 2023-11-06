@@ -3,9 +3,12 @@ import { spawn } from "child_process";
 import { ChangesData } from "./gitOperator.interfaces";
 
 export class GitOperator {
-  diffExclusionParameters: string[] = [];
+  private context: vscode.ExtensionContext;
+  private diffExclusionParameters: string[] = [];
 
-  constructor() {}
+  constructor(context: vscode.ExtensionContext) {
+    this.context = context;
+  }
 
   async checkGitInitialization(): Promise<boolean> {
     return new Promise((resolve, reject) => {
@@ -51,8 +54,9 @@ export class GitOperator {
     return diffOutputData;
   }
 
-  async getChangesData(comparisonBranch?: string): Promise<ChangesData | undefined> {
+  async getChangesData(): Promise<ChangesData> {
     return new Promise((resolve, reject) => {
+      const comparisonBranch = this.context.workspaceState.get<string>("comparisonBranch");
       if (comparisonBranch === undefined) {
         reject("A comparison branch wasn't defined. Please, define a comparison branch.");
         return;

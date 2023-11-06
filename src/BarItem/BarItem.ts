@@ -2,8 +2,8 @@ import * as vscode from "vscode";
 import { ChangesData } from "../gitOperator/gitOperator.interfaces";
 
 export class BarItem {
-  item!: vscode.StatusBarItem;
-  context!: vscode.ExtensionContext;
+  private item!: vscode.StatusBarItem;
+  private context!: vscode.ExtensionContext;
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
@@ -13,6 +13,13 @@ export class BarItem {
   updateItemData(changesData: ChangesData): void {
     this.updateCounter(changesData);
     this.updateTooltip(changesData);
+  }
+
+  start(): void {
+    this.item.text = "Changes: ?";
+    this.updateTooltip();
+    this.context.subscriptions.push(this.item);
+    this.item.show();
   }
 
   private updateCounter(changesData: ChangesData): void {
