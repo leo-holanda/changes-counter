@@ -2,10 +2,17 @@ import * as vscode from "vscode";
 import { LogTypes } from "./logger.enums";
 
 export class Logger {
-  outputChannel!: vscode.OutputChannel;
+  private static instance: Logger;
+  private outputChannel: vscode.OutputChannel;
 
   constructor() {
-    const outputChannel = vscode.window.createOutputChannel("Changes Counter");
+    this.outputChannel = vscode.window.createOutputChannel("Changes Counter");
+    this.log("Logger has been constructed.", LogTypes.INFO);
+  }
+
+  static getInstance(): Logger {
+    if (!Logger.instance) Logger.instance = new Logger();
+    return Logger.instance;
   }
 
   log(message: string, type: LogTypes): void {
