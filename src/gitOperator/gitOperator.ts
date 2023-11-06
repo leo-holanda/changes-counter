@@ -7,17 +7,8 @@ export class GitOperator {
 
   constructor() {}
 
-  private hasFoldersInWorkspace(): boolean {
-    return vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders.length > 0 : false;
-  }
-
   async checkGitInitialization(): Promise<boolean> {
     return new Promise((resolve, reject) => {
-      if (!this.hasFoldersInWorkspace()) {
-        reject("The extension couldn't find a folder in your workspace.");
-        return;
-      }
-
       let isGitInitialized: boolean;
 
       const gitChildProcess = spawn("git", ["rev-parse", "--is-inside-work-tree"], {
