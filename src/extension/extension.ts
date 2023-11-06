@@ -12,6 +12,8 @@ export class Extension {
   logger: Logger;
   context: vscode.ExtensionContext;
 
+  readonly IGNORE_FILE_NAME = ".ccignore";
+
   constructor(context: vscode.ExtensionContext) {
     this.logger = Logger.getInstance();
     this.context = context;
@@ -99,6 +101,7 @@ export class Extension {
     this.logger.log("Extension start will proceed.", LogTypes.INFO);
     this.addCommands();
     this.startBarItem();
+    this.setUpEventListeners();
   }
 
   private addCommands(): void {
@@ -184,5 +187,54 @@ export class Extension {
       );
       this.logger.log(error as string, LogTypes.ERROR);
     }
+  }
+
+  private setUpEventListeners(): void {
+    vscode.workspace.onDidChangeConfiguration(async (config) => {
+      if (config.affectsConfiguration("changesCounter")) this.updateBarItem();
+    });
+
+    vscode.workspace.onDidSaveTextDocument(async (document) => {
+      /*
+        onDidSaveTextDocument event is emitted before watcher's onDidChange.
+        Thus, updating the status item with older values. This condition is
+        necessary to update status item with values only after exclusion
+        parameters are updated and to avoid recalling the refresh function.
+      */
+      if (document.fileName.includes(this.IGNORE_FILE_NAME)) return;
+      await this.updateBarItem();
+    });
+
+    const watcher = vscode.workspace.createFileSystemWatcher(
+      new vscode.RelativePattern(vscode.workspace.workspaceFolders![0], this.IGNORE_FILE_NAME)
+    );
+
+    watcher.onDidCreate(async () => {
+      this.logger.log(
+        "An ignore file was created. Files and patterns defined in it will now be ignored when counting changes.",
+        LogTypes.INFO
+      );
+      await this.gitOperator.updateDiffExclusionParameters();
+      await this.updateBarItem();
+    });
+
+    watcher.onDidChange(async () => {
+      console.log("onDidChange");
+      this.logger.log(
+        "The ignore file was changed. Files and patterns to be ignore will be updated.",
+        LogTypes.INFO
+      );
+      await this.gitOperator.updateDiffExclusionParameters();
+      await this.updateBarItem();
+    });
+
+    watcher.onDidDelete(async () => {
+      this.logger.log(
+        "The ignore file was deleted. There will be no files and patterns being ignored when counting changes.",
+        LogTypes.INFO
+      );
+      await this.gitOperator.clearDiffExclusionParameters();
+      await this.updateBarItem();
+    });
   }
 }

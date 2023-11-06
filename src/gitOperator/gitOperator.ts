@@ -1,13 +1,28 @@
 import * as vscode from "vscode";
 import { spawn } from "child_process";
 import { ChangesData } from "./gitOperator.interfaces";
+import { Logger } from "../logger/logger";
+import { LogTypes } from "../logger/logger.enums";
 
 export class GitOperator {
   private context: vscode.ExtensionContext;
   private diffExclusionParameters: string[] = [];
+  private logger: Logger;
+  private hasLoggedIgnoreFileFirstCheck = false;
+
+  readonly IGNORE_FILE_NAME = ".ccignore";
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
+    this.logger = Logger.getInstance();
+  }
+
+  async updateDiffExclusionParameters(): Promise<void> {
+    this.diffExclusionParameters = await this.getDiffExclusionParameters();
+  }
+
+  clearDiffExclusionParameters(): void {
+    this.diffExclusionParameters = [];
   }
 
   async checkGitInitialization(): Promise<boolean> {
@@ -125,5 +140,39 @@ export class GitOperator {
         resolve(avaliableBranches);
       });
     });
+  }
+
+  private async getFilesToIgnore(): Promise<string[]> {
+    const matchedFiles = await vscode.workspace.findFiles(this.IGNORE_FILE_NAME);
+    if (matchedFiles.length === 0) {
+      this.logger.log("No ignore file was found.", LogTypes.INFO);
+      return [];
+    }
+
+    if (!this.hasLoggedIgnoreFileFirstCheck) {
+      this.logger.log(
+        "An ignore file was found. Files and patterns defined in it will be ignored when counting changes.",
+        LogTypes.INFO
+      );
+      this.hasLoggedIgnoreFileFirstCheck = true;
+    }
+    const cgIgnoreFileContent = await vscode.workspace.fs.readFile(matchedFiles[0]);
+    return cgIgnoreFileContent.toString().split("\n");
+  }
+
+  private async getDiffExclusionParameters(): Promise<string[]> {
+    const filesToIgnore = await this.getFilesToIgnore();
+    if (filesToIgnore.length === 0 || filesToIgnore[0] === "") return [];
+
+    let diffExclusionParameters: string[] = ["-- ."];
+    diffExclusionParameters = diffExclusionParameters.concat(
+      filesToIgnore.map((fileName) => {
+        return process.platform === "win32"
+          ? ":(exclude)" + fileName + ""
+          : "':(exclude)" + fileName + "'";
+      })
+    );
+
+    return diffExclusionParameters;
   }
 }
