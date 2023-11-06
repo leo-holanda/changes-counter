@@ -1,6 +1,7 @@
 import { spawn } from "child_process";
 import { EventEmitter } from "node:events";
 import * as vscode from "vscode";
+import { Extension } from "./extension/extension";
 
 interface ChangesData {
   insertions: string;
@@ -23,6 +24,8 @@ let diffExclusionParameters: string[] = [];
 let hasLoggedIgnoreFileFirstCheck = false;
 
 export async function activate(context: vscode.ExtensionContext) {
+  const extension = new Extension();
+
   let hasExtensionStarted = await startExtension();
   if (!hasExtensionStarted) return;
 

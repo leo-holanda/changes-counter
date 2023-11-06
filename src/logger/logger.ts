@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { LogTypes } from "./logger.enums";
 
-class Logger {
+export class Logger {
   outputChannel!: vscode.OutputChannel;
 
   constructor() {
