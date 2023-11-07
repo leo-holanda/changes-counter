@@ -4,6 +4,7 @@ import { Logger } from "../logger/logger";
 import { LogTypes } from "../logger/logger.enums";
 import * as vscode from "vscode";
 import { InitializationService } from "../initialization/initialization.service";
+import { CommandService } from "../commands/command.service";
 
 export class Extension {
   gitService: GitService;
@@ -11,16 +12,19 @@ export class Extension {
   logger: Logger;
   context: vscode.ExtensionContext;
   initializationService: InitializationService;
+  commandService: CommandService;
 
   readonly IGNORE_FILE_NAME = ".ccignore";
 
   constructor(context: vscode.ExtensionContext) {
-    this.logger = Logger.getInstance();
-    this.initializationService = new InitializationService(context);
     this.context = context;
+
+    this.logger = Logger.getInstance();
+    this.statusBarItem = StatusBarItem.getInstance(context);
+
+    this.initializationService = new InitializationService(context);
     this.gitService = new GitService(context);
-    this.statusBarItem = new StatusBarItem(context);
-    this.logger.log("Extension was constructed.", LogTypes.INFO);
+    this.commandService = new CommandService(context);
   }
 
   async bootstrap(): Promise<void> {
@@ -30,77 +34,9 @@ export class Extension {
 
   private async start(): Promise<void> {
     this.logger.log("Extension start will proceed.", LogTypes.INFO);
-    this.addCommands();
+    this.commandService.setUpCommands();
     await this.statusBarItem.init();
     this.setUpEventListeners();
-  }
-
-  private addCommands(): void {
-    this.context.subscriptions.push(this.createSetComparisonBranchCommand());
-    this.context.subscriptions.push(this.createSetQuantityThresholdCommand());
-  }
-
-  private createSetComparisonBranchCommand(): vscode.Disposable {
-    return vscode.commands.registerCommand("changes-counter.setComparisonBranch", async () => {
-      const comparisonBranchQuickPick = vscode.window.createQuickPick();
-      comparisonBranchQuickPick.placeholder = "Choose a branch to be compared";
-
-      let avaliableBranches: string[];
-      try {
-        avaliableBranches = await this.gitService.getAvailableBranches();
-      } catch (error) {
-        avaliableBranches = [];
-        this.logger.log(
-          "Error when getting the available branches for comparison.",
-          LogTypes.ERROR
-        );
-        this.logger.log(("Error message: " + error) as string, LogTypes.ERROR);
-      }
-
-      const quickPickItems = avaliableBranches.map((branch) => {
-        return { label: branch };
-      });
-
-      const firstRemoteBranchIndex = avaliableBranches.findIndex((branch) =>
-        branch.includes("remotes")
-      );
-      if (firstRemoteBranchIndex) {
-        const remoteBranchesSeparator: vscode.QuickPickItem = {
-          label: "Remotes",
-          kind: vscode.QuickPickItemKind.Separator,
-        };
-        quickPickItems.splice(firstRemoteBranchIndex, 0, remoteBranchesSeparator);
-      }
-
-      comparisonBranchQuickPick.items = quickPickItems;
-
-      comparisonBranchQuickPick.onDidChangeSelection((selection) => {
-        comparisonBranchQuickPick.dispose();
-        this.context.workspaceState.update("comparisonBranch", selection[0].label);
-        this.updateBarItem();
-      });
-
-      comparisonBranchQuickPick.show();
-    });
-  }
-
-  private createSetQuantityThresholdCommand(): vscode.Disposable {
-    return vscode.commands.registerCommand(
-      "changes-counter.setChangesQuantityThreshold",
-      async () => {
-        const changesQuantityThreshold = await vscode.window.showInputBox({
-          title: "Insert the changes quantity threshold",
-          prompt: "Only positive numbers are allowed.",
-          validateInput: (value) => {
-            if (+value && +value > 0) return null;
-            else return "Please, insert a positive number.";
-          },
-        });
-
-        this.context.workspaceState.update("changesQuantityThreshold", changesQuantityThreshold);
-        this.updateBarItem();
-      }
-    );
   }
 
   private async updateBarItem(): Promise<void> {

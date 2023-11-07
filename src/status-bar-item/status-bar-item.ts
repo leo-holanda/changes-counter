@@ -8,9 +8,16 @@ export class StatusBarItem {
   private statusBarItem!: vscode.StatusBarItem;
   private changesService: ChangesService;
 
+  private static instance: StatusBarItem;
+
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
     this.changesService = new ChangesService(context);
+  }
+
+  static getInstance(context: vscode.ExtensionContext): StatusBarItem {
+    if (!StatusBarItem.instance) StatusBarItem.instance = new StatusBarItem(context);
+    return StatusBarItem.instance;
   }
 
   async init(): Promise<void> {
