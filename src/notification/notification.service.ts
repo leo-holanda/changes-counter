@@ -1,44 +1,39 @@
 import * as vscode from "vscode";
-import { ChangesData } from "../git/git.service.interfaces";
+import { ChangesData } from "../changes/changes.interfaces";
 
 export class NotificationService {
-  isUserNotified = false;
-  hasLoggedIgnoreFileFirstCheck = false;
-  context: vscode.ExtensionContext;
+  private isUserNotified = false;
+  private hasLoggedIgnoreFileFirstCheck = false;
 
-  constructor(context: vscode.ExtensionContext) {
-    this.context = context;
+  constructor() {}
+
+  notifyIfAppropriate(changesData: ChangesData): void {
+    this.updateNotificationLock(changesData);
+
+    if (this.shouldNotify(changesData)) {
+      vscode.window.showWarningMessage("You have exceeded the changes quantity threshold.");
+      this.isUserNotified = true;
+    }
   }
 
-  notify(): void {
-    vscode.window.showWarningMessage("You have passed the changes quantity threshold.");
-    this.isUserNotified = true;
-  }
+  shouldNotify(changesData: ChangesData) {
+    if (!changesData.hasExceededThreshold) return false;
 
-  shouldSendNotification(changesData: ChangesData) {
     const config = vscode.workspace.getConfiguration("changesCounter");
     const shouldDisableNotifications = config.get<boolean>("disableNotifications");
-    const changesQuantityThreshold = this.context.workspaceState.get<string>(
-      "changesQuantityThreshold"
-    );
-
     if (shouldDisableNotifications !== undefined && shouldDisableNotifications) return false;
-    if (!this.hasPassedThreshold(changesData.changesCount, changesQuantityThreshold)) return false;
+
     if (this.isUserNotified) return false;
 
     return true;
   }
 
-  private hasPassedThreshold(changesCount?: string, changesQuantityThreshold?: string): boolean {
-    return (
-      changesQuantityThreshold !== undefined &&
-      changesCount !== undefined &&
-      +changesCount > +changesQuantityThreshold
-    );
-  }
-
-  verifyNotificationLockValidity(changesCount?: string, changesQuantityThreshold?: string): void {
-    if (!this.hasPassedThreshold(changesCount, changesQuantityThreshold))
-      if (this.isUserNotified) this.isUserNotified = false;
+  /*
+    The notification lock prevents the notification spam.
+    If the user was already notified, he will only be notified again if
+    he isn't above the threshold
+  */
+  private updateNotificationLock(changesData: ChangesData): void {
+    if (!changesData.hasExceededThreshold && this.isUserNotified) this.isUserNotified = false;
   }
 }

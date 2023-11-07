@@ -4,16 +4,19 @@ import { ChangesData } from "./changes.interfaces";
 import { DiffData } from "../git/git.service.interfaces";
 import { Logger } from "../logger/logger";
 import { LogTypes } from "../logger/logger.enums";
+import { NotificationService } from "../notification/notification.service";
 
 export class ChangesService {
   private gitService: GitService;
   private context: vscode.ExtensionContext;
   private logger: Logger;
+  private notificationService: NotificationService;
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
     this.gitService = new GitService(context);
     this.logger = Logger.getInstance();
+    this.notificationService = new NotificationService();
   }
 
   async getChangesData(): Promise<ChangesData | undefined> {
@@ -26,6 +29,8 @@ export class ChangesService {
         total: this.getTotalChanges(diffData),
         hasExceededThreshold: this.hasThresholdBeenExceeded(diffData),
       };
+
+      this.notificationService.notifyIfAppropriate(changesData);
 
       return changesData;
     } catch (error) {
