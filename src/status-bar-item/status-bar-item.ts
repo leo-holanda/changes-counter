@@ -1,34 +1,38 @@
 import * as vscode from "vscode";
-import { ChangesData } from "../git/git.service.interfaces";
+import { ChangesService } from "../changes/changes.service";
+import { ChangesData } from "../changes/changes.interfaces";
 
-export class BarItem {
-  private item!: vscode.StatusBarItem;
+export class StatusBarItem {
+  private changesData?: ChangesData;
   private context!: vscode.ExtensionContext;
+  private statusBarItem!: vscode.StatusBarItem;
+  private changesService: ChangesService;
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
-    this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 10);
+    this.changesService = new ChangesService(context);
   }
 
-  updateItemData(changesData: ChangesData): void {
-    this.updateCounter(changesData);
-    this.updateTooltip(changesData);
+  async init(): Promise<void> {
+    this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 10);
+    this.context.subscriptions.push(this.statusBarItem);
+    await this.updateStatusBarItemData();
+    this.statusBarItem.show();
   }
 
-  start(): void {
-    this.item.text = "Changes: ?";
+  async updateStatusBarItemData(): Promise<void> {
+    await this.updateChangesData();
+    this.updateText();
+    this.updateColor();
     this.updateTooltip();
-    this.context.subscriptions.push(this.item);
-    this.item.show();
   }
 
-  private updateCounter(changesData: ChangesData): void {
-    this.setCounterValue(changesData);
-    this.updateItemColor(changesData);
+  private async updateChangesData(): Promise<void> {
+    this.changesData = await this.changesService.getChangesData();
   }
 
-  private setCounterValue(changesData: ChangesData): void {
-    this.item.text = "Changes: " + changesData.changesCount;
+  private updateText(): void {
+    this.statusBarItem.text = "Changes: " + (this.changesData?.total || "?");
   }
 
   private shouldChangeItemColor(): boolean {
@@ -37,37 +41,22 @@ export class BarItem {
     return !shouldDisableColorChange;
   }
 
-  private updateItemColor(changesData: ChangesData): void {
-    const changesQuantityThreshold = this.context.workspaceState.get<string>(
-      "changesQuantityThreshold"
-    );
-
-    if (
-      this.shouldChangeItemColor() &&
-      this.hasPassedThreshold(changesData.changesCount, changesQuantityThreshold)
-    )
-      this.item.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
-    else this.item.backgroundColor = undefined;
+  private updateColor(): void {
+    if (this.shouldChangeItemColor() && this.changesData?.hasExceededThreshold)
+      this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
+    else this.statusBarItem.backgroundColor = undefined;
   }
 
-  private updateTooltip(changesData?: ChangesData): void {
+  private updateTooltip(): void {
+    this.statusBarItem.tooltip = this.getTooltipString();
+  }
+
+  private getTooltipString(): vscode.MarkdownString {
     const comparisonBranch = this.context.workspaceState.get<string>("comparisonBranch");
     const changesQuantityThreshold = this.context.workspaceState.get<string>(
       "changesQuantityThreshold"
     );
-    const newTooltipString = this.getTooltipString(
-      changesData,
-      comparisonBranch,
-      changesQuantityThreshold
-    );
-    this.item.tooltip = newTooltipString;
-  }
 
-  private getTooltipString(
-    changesData?: ChangesData,
-    comparisonBranch?: string,
-    changesQuantityThreshold?: string
-  ): vscode.MarkdownString {
     const setComparisonBranchCommandURI = vscode.Uri.parse(
       `command:changes-counter.setComparisonBranch`
     );
@@ -76,15 +65,15 @@ export class BarItem {
     );
     const markdownTooltip = new vscode.MarkdownString();
 
-    if (changesData) {
+    if (this.changesData) {
       markdownTooltip.appendMarkdown(
-        `$(plus) <strong>Insertions: </strong> <span style="color:#3fb950;">${changesData.insertions}</span> <br>`
+        `$(plus) <strong>Insertions: </strong> <span style="color:#3fb950;">${this.changesData.insertions}</span> <br>`
       );
       markdownTooltip.appendMarkdown(
-        `$(remove) <strong>Deletions: </strong> <span style="color:#f85149;">${changesData.deletions}</span> <br>`
+        `$(remove) <strong>Deletions: </strong> <span style="color:#f85149;">${this.changesData.deletions}</span> <br>`
       );
       markdownTooltip.appendMarkdown(
-        `$(chrome-maximize) <strong>Total Changes: </strong> ${changesData.changesCount}<br>`
+        `$(chrome-maximize) <strong>Total Changes: </strong> ${this.changesData.total}<br>`
       );
 
       markdownTooltip.appendMarkdown("<hr>");
@@ -142,13 +131,5 @@ export class BarItem {
     markdownTooltip.supportHtml = true;
 
     return markdownTooltip;
-  }
-
-  private hasPassedThreshold(changesCount?: string, changesQuantityThreshold?: string): boolean {
-    return (
-      changesQuantityThreshold !== undefined &&
-      changesCount !== undefined &&
-      +changesCount > +changesQuantityThreshold
-    );
   }
 }
