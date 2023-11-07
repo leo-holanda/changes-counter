@@ -1,14 +1,12 @@
-import { BarItem } from "../BarItem/BarItem";
+import { StatusBarItem } from "../status-bar-item/status-bar-item";
 import { GitService } from "../git/git.service";
 import { Logger } from "../logger/logger";
 import { LogTypes } from "../logger/logger.enums";
 import * as vscode from "vscode";
-import { NotificationService } from "../notification/notification.service";
 
 export class Extension {
   gitService: GitService;
-  notificationService: NotificationService;
-  barItem: BarItem;
+  statusBarItem: StatusBarItem;
   logger: Logger;
   context: vscode.ExtensionContext;
 
@@ -18,8 +16,7 @@ export class Extension {
     this.logger = Logger.getInstance();
     this.context = context;
     this.gitService = new GitService(context);
-    this.notificationService = new NotificationService();
-    this.barItem = new BarItem(context);
+    this.statusBarItem = new StatusBarItem(context);
     this.logger.log("Extension was constructed.", LogTypes.INFO);
   }
 
@@ -97,10 +94,10 @@ export class Extension {
     return isGitInitialized;
   }
 
-  private start(): void {
+  private async start(): Promise<void> {
     this.logger.log("Extension start will proceed.", LogTypes.INFO);
     this.addCommands();
-    this.startBarItem();
+    await this.statusBarItem.init();
     this.setUpEventListeners();
   }
 
@@ -172,21 +169,8 @@ export class Extension {
     );
   }
 
-  private async startBarItem(): Promise<void> {
-    this.barItem.start();
-  }
-
   private async updateBarItem(): Promise<void> {
-    try {
-      const changesData = await this.gitService.getChangesData();
-      this.barItem.updateItemData(changesData);
-    } catch (error) {
-      this.logger.log(
-        "An error was ocurred while the extension was getting your changes data.",
-        LogTypes.ERROR
-      );
-      this.logger.log(error as string, LogTypes.ERROR);
-    }
+    this.statusBarItem.updateStatusBarItemData();
   }
 
   private setUpEventListeners(): void {
