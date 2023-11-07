@@ -1,12 +1,12 @@
 import { BarItem } from "../BarItem/BarItem";
-import { GitOperator } from "../gitOperator/gitOperator";
+import { GitService } from "../git/git.service";
 import { Logger } from "../logger/logger";
 import { LogTypes } from "../logger/logger.enums";
 import * as vscode from "vscode";
 import { NotificationService } from "../notification/notification.service";
 
 export class Extension {
-  gitOperator: GitOperator;
+  gitService: GitService;
   notificationService: NotificationService;
   barItem: BarItem;
   logger: Logger;
@@ -17,7 +17,7 @@ export class Extension {
   constructor(context: vscode.ExtensionContext) {
     this.logger = Logger.getInstance();
     this.context = context;
-    this.gitOperator = new GitOperator(context);
+    this.gitService = new GitService(context);
     this.notificationService = new NotificationService();
     this.barItem = new BarItem(context);
     this.logger.log("Extension was constructed.", LogTypes.INFO);
@@ -77,7 +77,7 @@ export class Extension {
   private async isFolderInsideGitRepository(): Promise<boolean> {
     let isGitInitialized;
     try {
-      isGitInitialized = await this.gitOperator.checkGitInitialization();
+      isGitInitialized = await this.gitService.checkGitInitialization();
     } catch (error) {
       isGitInitialized = false;
       this.logger.log("Error when checking if git is initialized.", LogTypes.FATAL);
@@ -116,7 +116,7 @@ export class Extension {
 
       let avaliableBranches: string[];
       try {
-        avaliableBranches = await this.gitOperator.getAvailableBranches();
+        avaliableBranches = await this.gitService.getAvailableBranches();
       } catch (error) {
         avaliableBranches = [];
         this.logger.log(
@@ -178,7 +178,7 @@ export class Extension {
 
   private async updateBarItem(): Promise<void> {
     try {
-      const changesData = await this.gitOperator.getChangesData();
+      const changesData = await this.gitService.getChangesData();
       this.barItem.updateItemData(changesData);
     } catch (error) {
       this.logger.log(
@@ -214,7 +214,7 @@ export class Extension {
         "An ignore file was created. Files and patterns defined in it will now be ignored when counting changes.",
         LogTypes.INFO
       );
-      await this.gitOperator.updateDiffExclusionParameters();
+      await this.gitService.updateDiffExclusionParameters();
       await this.updateBarItem();
     });
 
@@ -224,7 +224,7 @@ export class Extension {
         "The ignore file was changed. Files and patterns to be ignore will be updated.",
         LogTypes.INFO
       );
-      await this.gitOperator.updateDiffExclusionParameters();
+      await this.gitService.updateDiffExclusionParameters();
       await this.updateBarItem();
     });
 
@@ -233,7 +233,7 @@ export class Extension {
         "The ignore file was deleted. There will be no files and patterns being ignored when counting changes.",
         LogTypes.INFO
       );
-      await this.gitOperator.clearDiffExclusionParameters();
+      await this.gitService.clearDiffExclusionParameters();
       await this.updateBarItem();
     });
   }

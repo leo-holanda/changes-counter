@@ -1,10 +1,10 @@
 import * as vscode from "vscode";
 import { spawn } from "child_process";
-import { ChangesData } from "./gitOperator.interfaces";
+import { ChangesData } from "./git.service.interfaces";
 import { Logger } from "../logger/logger";
 import { LogTypes } from "../logger/logger.enums";
 
-export class GitOperator {
+export class GitService {
   private context: vscode.ExtensionContext;
   private diffExclusionParameters: string[] = [];
   private logger: Logger;

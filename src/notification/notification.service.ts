@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { ChangesData } from "../gitOperator/gitOperator.interfaces";
+import { ChangesData } from "../git/git.service.interfaces";
 
 export class NotificationService {
   isUserNotified = false;
