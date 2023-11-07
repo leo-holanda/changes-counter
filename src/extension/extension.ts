@@ -2,12 +2,12 @@ import { BarItem } from "../BarItem/BarItem";
 import { GitOperator } from "../gitOperator/gitOperator";
 import { Logger } from "../logger/logger";
 import { LogTypes } from "../logger/logger.enums";
-import { Notificator } from "../notificator/notificator";
 import * as vscode from "vscode";
+import { NotificationService } from "../notification/notification.service";
 
 export class Extension {
   gitOperator: GitOperator;
-  notificator: Notificator;
+  notificationService: NotificationService;
   barItem: BarItem;
   logger: Logger;
   context: vscode.ExtensionContext;
@@ -18,7 +18,7 @@ export class Extension {
     this.logger = Logger.getInstance();
     this.context = context;
     this.gitOperator = new GitOperator(context);
-    this.notificator = new Notificator();
+    this.notificationService = new NotificationService();
     this.barItem = new BarItem(context);
     this.logger.log("Extension was constructed.", LogTypes.INFO);
   }
