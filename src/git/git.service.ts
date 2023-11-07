@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { spawn } from "child_process";
-import { ChangesData } from "./git.service.interfaces";
+import { DiffData } from "./git.service.interfaces";
 import { Logger } from "../logger/logger";
 import { LogTypes } from "../logger/logger.enums";
 
@@ -49,8 +49,8 @@ export class GitService {
     });
   }
 
-  private parseDiffOutput(diffOutput: Buffer): ChangesData {
-    const diffOutputData = { changesCount: "0", insertions: "0", deletions: "0" };
+  private parseDiffOutput(diffOutput: Buffer): DiffData {
+    const diffOutputData: DiffData = { insertions: "0", deletions: "0" };
 
     const splittedDiffOutput = diffOutput.toString().split(", ").slice(1);
 
@@ -62,14 +62,10 @@ export class GitService {
         diffOutputData.deletions = splittedChangesData[0];
     });
 
-    diffOutputData.changesCount = (
-      +diffOutputData.insertions + +diffOutputData.deletions
-    ).toString();
-
     return diffOutputData;
   }
 
-  async getChangesData(): Promise<ChangesData> {
+  async getDiffData(): Promise<DiffData> {
     return new Promise((resolve, reject) => {
       const comparisonBranch = this.context.workspaceState.get<string>("comparisonBranch");
       if (comparisonBranch === undefined) {
@@ -77,10 +73,9 @@ export class GitService {
         return;
       }
 
-      let changesData: ChangesData = {
+      let changesData: DiffData = {
         insertions: "0",
         deletions: "0",
-        changesCount: "0",
       };
 
       const gitChildProcess = spawn(

@@ -1,5 +1,4 @@
-export interface ChangesData {
+export interface DiffData {
   insertions: string;
   deletions: string;
-  changesCount: string;
 }
