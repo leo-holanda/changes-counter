@@ -16,11 +16,19 @@ export class SettingsService {
 
   init(): void {
     if (!this.isComparisonBranchDefined()) this.setDefaultComparisonBranch();
+    if (!this.isChangesThresholdDefined()) this.setDefaultChangesThreshold();
   }
 
   private isComparisonBranchDefined(): boolean {
     const comparisonBranch = this.context.workspaceState.get<string>("comparisonBranch");
     return comparisonBranch !== undefined;
+  }
+
+  private isChangesThresholdDefined(): boolean {
+    const changesQuantityThreshold = this.context.workspaceState.get<string>(
+      "changesQuantityThreshold"
+    );
+    return changesQuantityThreshold !== undefined;
   }
 
   private async setDefaultComparisonBranch(): Promise<void> {
@@ -34,5 +42,9 @@ export class SettingsService {
       );
       this.logger.log("Error message: " + error, LogTypes.ERROR);
     }
+  }
+
+  private setDefaultChangesThreshold(): void {
+    this.context.workspaceState.update("changesQuantityThreshold", "400");
   }
 }
