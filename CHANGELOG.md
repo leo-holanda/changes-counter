@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Waiting for users feedback so I can improve the extesion.
 
+## [1.5.0] - 2023-11-08
+
+### Added
+
+- Add default comparison branch which is the current branch
+- Add default changes threshold which is 400
+
+### Fixed
+
+- Fix bug where the set comparison branch quickpick wouldn't show all branches
+
+### Changed
+
+- Switched the project programming approach to OOP
+- Added a new Usage section to README
+
 ## [1.4.0] - 2023-05-12
 
 ### Added

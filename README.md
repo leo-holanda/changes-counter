@@ -7,14 +7,11 @@
 
 ![Changes Counter screenshot](https://i.imgur.com/NQHj04x.png)
 
-**For the extension to work, you must open a folder in your workspace that have git initialized.**
-
-If the extension isn't working, check the Changes Counter output channel in the panel for more info.
-
 ## Contents
 
 - [Features](#features)
 - [Installation](#installation)
+- [Usage](#usage)
 - [Extension Settings](#extension-settings)
 - [Contributing](#contributing)
 - [License](#license)
@@ -35,6 +32,36 @@ Open VS Code, press Ctrl + P and enter this command
 `ext install LeonardoHolanda.changes-counter`
 
 You can also search for "Changes Counter" in the Extensions Tab search, find the extension and install it there.
+
+## Usage
+
+After you installed the extension and opened your repository folder for the first time, the extension will try to:
+
+- Set the default comparison branch to your current branch
+- Set the default changes threshold to 400
+
+You can change both the comparison branch and changes threshold anytime you want by pressing `cmd + shift + p` and executing one of the extension commands:
+
+- `Changes Counter: Set comparison branch`
+
+- `Changes Counter: Set changes quantity threshold`
+
+Or clicking the tooltip links.
+
+From now on, anytime you save a file the status bar item at the bottom will update showing how many changes were made between your working tree and your comparison branch (e.g: `Changes: 64`).
+
+### Important
+
+**For the extension to work, you must open a folder in your workspace that is a Git repository.**
+
+If you are experiencing any prolem, please do the following:
+
+- Open the panel where the terminal is located.
+- Select the Output tab.
+- At the dropdown in the right upper part, select the Changes Counter channel.
+- Check the logs.
+
+If the problem is complicated or the logs aren't helpful, please copy the logs and create an issue with them. It will be very appreciated!
 
 ## Ignore file
 
