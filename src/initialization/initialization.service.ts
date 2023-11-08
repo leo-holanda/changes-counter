@@ -69,13 +69,8 @@ export class InitializationService {
       this.logger.log(("Error message: " + error) as string, LogTypes.FATAL);
     }
 
-    if (!isGitInitialized) {
-      this.logger.log(
-        "Open a folder that has git initialized for the extension to work.",
-        LogTypes.INFO
-      );
+    if (!isGitInitialized)
       vscode.commands.executeCommand("setContext", "changesCounter.isGitInitialized", false);
-    }
 
     vscode.commands.executeCommand("setContext", "changesCounter.isGitInitialized", true);
 
