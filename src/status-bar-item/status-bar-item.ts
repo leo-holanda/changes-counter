@@ -42,14 +42,14 @@ export class StatusBarItem {
     this.statusBarItem.text = "Changes: " + (this.changesData?.total || "?");
   }
 
-  private shouldChangeItemColor(): boolean {
+  private shouldChangeColor(): boolean {
     const config = vscode.workspace.getConfiguration("changesCounter");
     const shouldDisableColorChange = config.get<boolean>("disableStatusBarIconColorChange");
-    return !shouldDisableColorChange;
+    return !shouldDisableColorChange && (this.changesData?.hasExceededThreshold || false);
   }
 
   private updateColor(): void {
-    if (this.shouldChangeItemColor() && this.changesData?.hasExceededThreshold)
+    if (this.shouldChangeColor())
       this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
     else this.statusBarItem.backgroundColor = undefined;
   }
@@ -59,19 +59,20 @@ export class StatusBarItem {
   }
 
   private getTooltipString(): vscode.MarkdownString {
-    const comparisonBranch = this.context.workspaceState.get<string>("comparisonBranch");
-    const changesQuantityThreshold = this.context.workspaceState.get<string>(
-      "changesQuantityThreshold"
-    );
-
-    const setComparisonBranchCommandURI = vscode.Uri.parse(
-      `command:changes-counter.setComparisonBranch`
-    );
-    const setChangesQuantityThresholdCommandURI = vscode.Uri.parse(
-      `command:changes-counter.setChangesQuantityThreshold`
-    );
     const markdownTooltip = new vscode.MarkdownString();
 
+    this.appendChangesDataMarkdown(markdownTooltip);
+    this.appendSettingsMarkdown(markdownTooltip);
+    this.appendCommandsMarkdown(markdownTooltip);
+
+    markdownTooltip.isTrusted = true;
+    markdownTooltip.supportThemeIcons = true;
+    markdownTooltip.supportHtml = true;
+
+    return markdownTooltip;
+  }
+
+  private appendChangesDataMarkdown(markdownTooltip: vscode.MarkdownString): void {
     if (this.changesData) {
       markdownTooltip.appendMarkdown(
         `$(plus) <strong>Insertions: </strong> <span style="color:#3fb950;">${this.changesData.insertions}</span> <br>`
@@ -86,6 +87,13 @@ export class StatusBarItem {
       markdownTooltip.appendMarkdown("<hr>");
       markdownTooltip.appendMarkdown("<br>");
     }
+  }
+
+  private appendSettingsMarkdown(markdownTooltip: vscode.MarkdownString): void {
+    const comparisonBranch = this.context.workspaceState.get<string>("comparisonBranch");
+    const changesQuantityThreshold = this.context.workspaceState.get<string>(
+      "changesQuantityThreshold"
+    );
 
     if (comparisonBranch) {
       markdownTooltip.appendMarkdown(
@@ -120,6 +128,20 @@ export class StatusBarItem {
       markdownTooltip.appendMarkdown("<br>");
       markdownTooltip.appendMarkdown(`$(alert) Set the changes quantity threshold.`);
     }
+  }
+
+  private appendCommandsMarkdown(markdownTooltip: vscode.MarkdownString): void {
+    const comparisonBranch = this.context.workspaceState.get<string>("comparisonBranch");
+    const changesQuantityThreshold = this.context.workspaceState.get<string>(
+      "changesQuantityThreshold"
+    );
+
+    const setComparisonBranchCommandURI = vscode.Uri.parse(
+      `command:changes-counter.setComparisonBranch`
+    );
+    const setChangesQuantityThresholdCommandURI = vscode.Uri.parse(
+      `command:changes-counter.setChangesQuantityThreshold`
+    );
 
     markdownTooltip.appendMarkdown(
       `<hr><br> $(edit) [${
@@ -132,11 +154,5 @@ export class StatusBarItem {
         changesQuantityThreshold ? "Change" : "Set"
       } Changes Quantity Threshold](${setChangesQuantityThresholdCommandURI})`
     );
-
-    markdownTooltip.isTrusted = true;
-    markdownTooltip.supportThemeIcons = true;
-    markdownTooltip.supportHtml = true;
-
-    return markdownTooltip;
   }
 }
