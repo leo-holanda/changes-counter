@@ -177,4 +177,32 @@ export class GitService {
 
     return diffExclusionParameters;
   }
+
+  async getCurrentBranch(): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const gitBranchProcess = spawn("git", ["branch", "--show-current"], {
+        cwd: vscode.workspace.workspaceFolders![0].uri.fsPath,
+      });
+
+      gitBranchProcess.on("error", (err) => reject(err));
+
+      const chunks: Buffer[] = [];
+      gitBranchProcess.stdout.on("data", (chunk: Buffer) => {
+        chunks.push(chunk);
+      });
+
+      gitBranchProcess.stderr.on("data", (data: Buffer) => {
+        reject(data.toString());
+      });
+
+      gitBranchProcess.on("close", () => {
+        const processOutput = Buffer.concat(chunks).toString();
+        resolve(this.removeNewLineCharacter(processOutput));
+      });
+    });
+  }
+
+  private removeNewLineCharacter(output: string): string {
+    return output.slice(0, output.length - 1);
+  }
 }

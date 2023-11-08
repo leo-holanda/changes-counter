@@ -6,6 +6,7 @@ import * as vscode from "vscode";
 import { InitializationService } from "../initialization/initialization.service";
 import { CommandService } from "../commands/command.service";
 import { EventService } from "../event/event.service";
+import { SettingsService } from "../settings/settings.service";
 
 export class Extension {
   context: vscode.ExtensionContext;
@@ -17,6 +18,7 @@ export class Extension {
   gitService: GitService;
   commandService: CommandService;
   eventService: EventService;
+  settingsService: SettingsService;
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
@@ -28,6 +30,7 @@ export class Extension {
     this.gitService = GitService.getInstance(context);
     this.commandService = new CommandService(context);
     this.eventService = new EventService(context);
+    this.settingsService = new SettingsService(context);
   }
 
   async bootstrap(): Promise<void> {
@@ -37,6 +40,7 @@ export class Extension {
 
   private async start(): Promise<void> {
     this.logger.log("Extension start will proceed.", LogTypes.INFO);
+    this.settingsService.init();
     this.commandService.setUpCommands();
     await this.gitService.updateDiffExclusionParameters();
     await this.statusBarItem.init();
