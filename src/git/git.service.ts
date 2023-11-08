@@ -8,7 +8,6 @@ export class GitService {
   private context: vscode.ExtensionContext;
   private diffExclusionParameters: string[] = [];
   private logger: Logger;
-  private hasLoggedIgnoreFileFirstCheck = false;
 
   readonly IGNORE_FILE_NAME = ".ccignore";
 
@@ -141,16 +140,18 @@ export class GitService {
     const matchedFiles = await vscode.workspace.findFiles(this.IGNORE_FILE_NAME);
     if (matchedFiles.length === 0) {
       this.logger.log("No ignore file was found.", LogTypes.INFO);
+      Logger.hasLoggedIgnoreFileFirstCheck = true;
       return [];
     }
 
-    if (!this.hasLoggedIgnoreFileFirstCheck) {
+    if (!Logger.hasLoggedIgnoreFileFirstCheck) {
       this.logger.log(
         "An ignore file was found. Files and patterns defined in it will be ignored when counting changes.",
         LogTypes.INFO
       );
-      this.hasLoggedIgnoreFileFirstCheck = true;
+      Logger.hasLoggedIgnoreFileFirstCheck = true;
     }
+
     const cgIgnoreFileContent = await vscode.workspace.fs.readFile(matchedFiles[0]);
     return cgIgnoreFileContent.toString().split("\n");
   }

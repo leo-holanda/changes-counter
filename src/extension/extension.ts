@@ -38,6 +38,7 @@ export class Extension {
   private async start(): Promise<void> {
     this.logger.log("Extension start will proceed.", LogTypes.INFO);
     this.commandService.setUpCommands();
+    await this.gitService.updateDiffExclusionParameters();
     await this.statusBarItem.init();
     this.eventService.setUpEventListeners();
   }

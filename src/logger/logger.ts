@@ -4,6 +4,7 @@ import { LogTypes } from "./logger.enums";
 export class Logger {
   private static instance: Logger;
   private outputChannel: vscode.OutputChannel;
+  static hasLoggedIgnoreFileFirstCheck = false;
 
   constructor() {
     this.outputChannel = vscode.window.createOutputChannel("Changes Counter");
