@@ -110,36 +110,42 @@ export class GitService {
 
   async getAvailableBranches(): Promise<string[]> {
     return new Promise((resolve, reject) => {
-      let avaliableBranches: string[];
-
-      const gitChildProcess = spawn("git", ["branch", "-a"], {
+      const gitBranchProcess = spawn("git", ["branch", "-a"], {
         cwd: vscode.workspace.workspaceFolders![0].uri.fsPath,
       });
 
-      gitChildProcess.on("error", (err) => reject(err));
+      gitBranchProcess.on("error", (err) => reject(err));
 
-      gitChildProcess.stdout.on("data", (data: Buffer) => {
-        const branchesList = data.toString().split(/\r?\n/);
-        let validBranches = branchesList.filter((branch) => branch && branch[0] !== "*");
-
-        const removeRemoteBranchArrow = new RegExp("( -> ).*");
-        /*
-          "remotes/origin/HEAD -> origin/main" becomes
-          "remotes/origin/HEAD"
-        */
-        avaliableBranches = validBranches.map((branch) => {
-          return branch.trim().replace(removeRemoteBranchArrow, "");
-        });
+      const chunks: Buffer[] = [];
+      gitBranchProcess.stdout.on("data", (chunk: Buffer) => {
+        chunks.push(chunk);
       });
 
-      gitChildProcess.stderr.on("data", (data: Buffer) => {
+      gitBranchProcess.stderr.on("data", (data: Buffer) => {
         reject(data.toString());
       });
 
-      gitChildProcess.on("close", () => {
-        resolve(avaliableBranches);
+      gitBranchProcess.on("close", () => {
+        resolve(this.getAvailableBranchesFromBuffer(chunks));
       });
     });
+  }
+
+  private getAvailableBranchesFromBuffer(chunks: Buffer[]): string[] {
+    const branchesList = Buffer.concat(chunks).toString().split(/\r?\n/);
+    const validBranches = branchesList.filter((branch) => branch);
+
+    const currentBranchIndicator = /\*\s/; //Why it doesn't work with RegExp???????????????? it's so annoying
+    const remoteBranchArrow = new RegExp("( -> ).*");
+    /*
+      "remotes/origin/HEAD -> origin/main" becomes
+      "remotes/origin/HEAD"
+    */
+    const avaliableBranches = validBranches.map((branch) => {
+      return branch.trim().replace(remoteBranchArrow, "").replace(currentBranchIndicator, "");
+    });
+
+    return avaliableBranches;
   }
 
   private async getFilesToIgnore(): Promise<string[]> {
