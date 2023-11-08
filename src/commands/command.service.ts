@@ -12,7 +12,7 @@ export class CommandService {
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
-    this.gitService = new GitService(context);
+    this.gitService = GitService.getInstance(context);
     this.logger = Logger.getInstance();
     this.statusBarItem = StatusBarItem.getInstance(context);
   }

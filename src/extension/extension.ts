@@ -25,7 +25,7 @@ export class Extension {
     this.statusBarItem = StatusBarItem.getInstance(context);
 
     this.initializationService = new InitializationService(context);
-    this.gitService = new GitService(context);
+    this.gitService = GitService.getInstance(context);
     this.commandService = new CommandService(context);
     this.eventService = new EventService(context);
   }

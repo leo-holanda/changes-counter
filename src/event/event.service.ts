@@ -14,7 +14,7 @@ export class EventService {
   constructor(context: vscode.ExtensionContext) {
     this.statusBarItem = StatusBarItem.getInstance(context);
     this.logger = Logger.getInstance();
-    this.gitService = new GitService(context);
+    this.gitService = GitService.getInstance(context);
   }
 
   setUpEventListeners(): void {

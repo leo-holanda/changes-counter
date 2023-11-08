@@ -8,12 +8,18 @@ export class GitService {
   private context: vscode.ExtensionContext;
   private diffExclusionParameters: string[] = [];
   private logger: Logger;
+  private static instance: GitService;
 
   readonly IGNORE_FILE_NAME = ".ccignore";
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
     this.logger = Logger.getInstance();
+  }
+
+  static getInstance(context: vscode.ExtensionContext): GitService {
+    if (!GitService.instance) GitService.instance = new GitService(context);
+    return GitService.instance;
   }
 
   async updateDiffExclusionParameters(): Promise<void> {

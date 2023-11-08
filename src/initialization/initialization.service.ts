@@ -9,7 +9,7 @@ export class InitializationService {
 
   constructor(context: vscode.ExtensionContext) {
     this.logger = Logger.getInstance();
-    this.gitService = new GitService(context);
+    this.gitService = GitService.getInstance(context);
   }
 
   async hasMetStartConditions(): Promise<boolean> {

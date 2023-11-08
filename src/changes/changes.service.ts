@@ -14,7 +14,7 @@ export class ChangesService {
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
-    this.gitService = new GitService(context);
+    this.gitService = GitService.getInstance(context);
     this.logger = Logger.getInstance();
     this.notificationService = new NotificationService();
   }
