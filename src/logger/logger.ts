@@ -7,7 +7,6 @@ export class Logger {
 
   constructor() {
     this.outputChannel = vscode.window.createOutputChannel("Changes Counter");
-    this.log("Logger has been constructed.", LogTypes.INFO);
   }
 
   static getInstance(): Logger {
