@@ -32,16 +32,15 @@ export class GitService {
 
   async checkGitInitialization(): Promise<boolean> {
     return new Promise((resolve, reject) => {
-      let isGitInitialized: boolean;
-
       const gitChildProcess = spawn("git", ["rev-parse", "--is-inside-work-tree"], {
         cwd: vscode.workspace.workspaceFolders![0].uri.fsPath,
       });
 
       gitChildProcess.on("error", (err) => reject(err));
 
-      gitChildProcess.stdout.on("data", (data: Buffer) => {
-        isGitInitialized = data.toString().includes("true");
+      let chunks: Buffer[] = [];
+      gitChildProcess.stdout.on("data", (chunk: Buffer) => {
+        chunks.push(chunk);
       });
 
       gitChildProcess.stderr.on("data", (data: Buffer) => {
@@ -49,7 +48,8 @@ export class GitService {
       });
 
       gitChildProcess.on("close", () => {
-        resolve(isGitInitialized);
+        const processOutput = Buffer.concat(chunks);
+        resolve(this.parseRevParseOutput(processOutput));
       });
     });
   }
@@ -207,5 +207,9 @@ export class GitService {
 
   private removeNewLineCharacter(output: string): string {
     return output.slice(0, output.length - 1);
+  }
+
+  private parseRevParseOutput(output: Buffer): boolean {
+    return output.toString().includes("true");
   }
 }
