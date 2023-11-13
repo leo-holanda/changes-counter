@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Waiting for users feedback so I can improve the extesion.
 
+## [1.5.1] - 2023-11-13
+
+### Changed
+
+- Add chunk accumulators in all functions from git service
+- Improve code consistency
+
+### Fixed
+
+- Fix some log messages
+
 ## [1.5.0] - 2023-11-08
 
 ### Added
