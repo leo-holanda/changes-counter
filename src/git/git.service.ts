@@ -49,7 +49,7 @@ export class GitService {
 
       gitChildProcess.on("close", () => {
         const processOutput = Buffer.concat(chunks);
-        resolve(this.parseRevParseOutput(processOutput));
+        resolve(this.extractInitializationData(processOutput));
       });
     });
   }
@@ -84,7 +84,7 @@ export class GitService {
 
       gitChildProcess.on("close", () => {
         const processOutput = Buffer.concat(chunks);
-        resolve(this.parseDiffOutput(processOutput));
+        resolve(this.extractDiffData(processOutput));
       });
     });
   }
@@ -108,7 +108,7 @@ export class GitService {
 
       gitBranchProcess.on("close", () => {
         const processOutput = Buffer.concat(chunks);
-        resolve(this.parseBranchOutput(processOutput));
+        resolve(this.extractBranchData(processOutput));
       });
     });
   }
@@ -135,38 +135,6 @@ export class GitService {
         resolve(this.removeNewLineCharacter(processOutput));
       });
     });
-  }
-
-  private parseDiffOutput(processOutput: Buffer): DiffData {
-    const diffOutputData: DiffData = { insertions: "0", deletions: "0" };
-    const splittedDiffOutput = processOutput.toString().split(", ").slice(1);
-
-    splittedDiffOutput.forEach((changesData) => {
-      const splittedChangesData = changesData.split(" ");
-      if (splittedChangesData[1].includes("insertion"))
-        diffOutputData.insertions = splittedChangesData[0];
-      else if (splittedChangesData[1].includes("deletion"))
-        diffOutputData.deletions = splittedChangesData[0];
-    });
-
-    return diffOutputData;
-  }
-
-  private parseBranchOutput(processOutput: Buffer): string[] {
-    const branchesList = processOutput.toString().split(/\r?\n/);
-    const validBranches = branchesList.filter((branch) => branch);
-
-    const currentBranchIndicator = /\*\s/; //Why it doesn't work with RegExp???????????????? it's so annoying
-    const remoteBranchArrow = new RegExp("( -> ).*");
-    /*
-      "remotes/origin/HEAD -> origin/main" becomes
-      "remotes/origin/HEAD"
-    */
-    const avaliableBranches = validBranches.map((branch) => {
-      return branch.trim().replace(remoteBranchArrow, "").replace(currentBranchIndicator, "");
-    });
-
-    return avaliableBranches;
   }
 
   private async getFilesToIgnore(): Promise<string[]> {
@@ -205,11 +173,43 @@ export class GitService {
     return diffExclusionParameters;
   }
 
+  private extractDiffData(processOutput: Buffer): DiffData {
+    const diffOutputData: DiffData = { insertions: "0", deletions: "0" };
+    const splittedDiffOutput = processOutput.toString().split(", ").slice(1);
+
+    splittedDiffOutput.forEach((changesData) => {
+      const splittedChangesData = changesData.split(" ");
+      if (splittedChangesData[1].includes("insertion"))
+        diffOutputData.insertions = splittedChangesData[0];
+      else if (splittedChangesData[1].includes("deletion"))
+        diffOutputData.deletions = splittedChangesData[0];
+    });
+
+    return diffOutputData;
+  }
+
+  private extractBranchData(processOutput: Buffer): string[] {
+    const branchesList = processOutput.toString().split(/\r?\n/);
+    const validBranches = branchesList.filter((branch) => branch);
+
+    const currentBranchIndicator = /\*\s/; //Why it doesn't work with RegExp???????????????? it's so annoying
+    const remoteBranchArrow = new RegExp("( -> ).*");
+    /*
+      "remotes/origin/HEAD -> origin/main" becomes
+      "remotes/origin/HEAD"
+    */
+    const avaliableBranches = validBranches.map((branch) => {
+      return branch.trim().replace(remoteBranchArrow, "").replace(currentBranchIndicator, "");
+    });
+
+    return avaliableBranches;
+  }
+
   private removeNewLineCharacter(processOutput: Buffer): string {
     return processOutput.toString().slice(0, processOutput.length - 1);
   }
 
-  private parseRevParseOutput(processOutput: Buffer): boolean {
+  private extractInitializationData(processOutput: Buffer): boolean {
     return processOutput.toString().includes("true");
   }
 }
