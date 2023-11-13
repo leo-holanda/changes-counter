@@ -1,7 +1,8 @@
 # Changes Counter
 
-![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/LeonardoHolanda.changes-counter?color=%230066b8&label=VS%20Code%20Marketplace&style=flat-square)
-![GitHub](https://img.shields.io/github/license/leo-holanda/changes-counter?color=%230066b8&style=flat-square)
+[![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/LeonardoHolanda.changes-counter?color=%230066b8&label=VS%20Code%20Marketplace&style=flat-square)](https://marketplace.visualstudio.com/items?itemName=LeonardoHolanda.changes-counter)
+[![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/LeonardoHolanda.changes-counter?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=LeonardoHolanda.changes-counter)
+[![GitHub](https://img.shields.io/github/license/leo-holanda/changes-counter?color=%230066b8&style=flat-square)](https://github.com/leo-holanda/changes-counter)
 
 > A VS Code extension that counts the number of changes between your git working tree and a comparison branch. Also, it warns you when you exceed a changes quantity threshold, helping you control the size of your pull requests and making them more easy to review.
 
