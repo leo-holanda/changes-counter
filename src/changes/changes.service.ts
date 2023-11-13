@@ -35,7 +35,7 @@ export class ChangesService {
       return changesData;
     } catch (error) {
       this.logger.log(
-        "An error was ocurred while the extension was getting your changes data.",
+        "An error has ocurred while the extension was getting your changes data.",
         LogTypes.ERROR
       );
       this.logger.log(("Error message: " + error) as string, LogTypes.ERROR);

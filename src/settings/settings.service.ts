@@ -37,7 +37,7 @@ export class SettingsService {
       this.context.workspaceState.update("comparisonBranch", currentBranch);
     } catch (error) {
       this.logger.log(
-        "An error ocurred while trying to set your default comparison branch.",
+        "An error has ocurred while trying to set your default comparison branch.",
         LogTypes.ERROR
       );
       this.logger.log("Error message: " + error, LogTypes.ERROR);
