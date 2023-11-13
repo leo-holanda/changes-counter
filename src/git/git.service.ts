@@ -54,22 +54,6 @@ export class GitService {
     });
   }
 
-  private parseDiffOutput(diffOutput: Buffer): DiffData {
-    const diffOutputData: DiffData = { insertions: "0", deletions: "0" };
-
-    const splittedDiffOutput = diffOutput.toString().split(", ").slice(1);
-
-    splittedDiffOutput.forEach((changesData) => {
-      const splittedChangesData = changesData.split(" ");
-      if (splittedChangesData[1].includes("insertion"))
-        diffOutputData.insertions = splittedChangesData[0];
-      else if (splittedChangesData[1].includes("deletion"))
-        diffOutputData.deletions = splittedChangesData[0];
-    });
-
-    return diffOutputData;
-  }
-
   async getDiffData(): Promise<DiffData> {
     return new Promise((resolve, reject) => {
       const comparisonBranch = this.context.workspaceState.get<string>("comparisonBranch");
@@ -128,6 +112,46 @@ export class GitService {
     });
   }
 
+  async getCurrentBranch(): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const gitBranchProcess = spawn("git", ["branch", "--show-current"], {
+        cwd: vscode.workspace.workspaceFolders![0].uri.fsPath,
+      });
+
+      gitBranchProcess.on("error", (err) => reject(err));
+
+      const chunks: Buffer[] = [];
+      gitBranchProcess.stdout.on("data", (chunk: Buffer) => {
+        chunks.push(chunk);
+      });
+
+      gitBranchProcess.stderr.on("data", (data: Buffer) => {
+        reject(data.toString());
+      });
+
+      gitBranchProcess.on("close", () => {
+        const processOutput = Buffer.concat(chunks).toString();
+        resolve(this.removeNewLineCharacter(processOutput));
+      });
+    });
+  }
+
+  private parseDiffOutput(diffOutput: Buffer): DiffData {
+    const diffOutputData: DiffData = { insertions: "0", deletions: "0" };
+
+    const splittedDiffOutput = diffOutput.toString().split(", ").slice(1);
+
+    splittedDiffOutput.forEach((changesData) => {
+      const splittedChangesData = changesData.split(" ");
+      if (splittedChangesData[1].includes("insertion"))
+        diffOutputData.insertions = splittedChangesData[0];
+      else if (splittedChangesData[1].includes("deletion"))
+        diffOutputData.deletions = splittedChangesData[0];
+    });
+
+    return diffOutputData;
+  }
+
   private getAvailableBranchesFromBuffer(chunks: Buffer[]): string[] {
     const branchesList = Buffer.concat(chunks).toString().split(/\r?\n/);
     const validBranches = branchesList.filter((branch) => branch);
@@ -179,30 +203,6 @@ export class GitService {
     );
 
     return diffExclusionParameters;
-  }
-
-  async getCurrentBranch(): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const gitBranchProcess = spawn("git", ["branch", "--show-current"], {
-        cwd: vscode.workspace.workspaceFolders![0].uri.fsPath,
-      });
-
-      gitBranchProcess.on("error", (err) => reject(err));
-
-      const chunks: Buffer[] = [];
-      gitBranchProcess.stdout.on("data", (chunk: Buffer) => {
-        chunks.push(chunk);
-      });
-
-      gitBranchProcess.stderr.on("data", (data: Buffer) => {
-        reject(data.toString());
-      });
-
-      gitBranchProcess.on("close", () => {
-        const processOutput = Buffer.concat(chunks).toString();
-        resolve(this.removeNewLineCharacter(processOutput));
-      });
-    });
   }
 
   private removeNewLineCharacter(output: string): string {
