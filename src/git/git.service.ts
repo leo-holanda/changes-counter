@@ -83,8 +83,8 @@ export class GitService {
       });
 
       gitChildProcess.on("close", () => {
-        const changesData = Buffer.concat(chunks);
-        resolve(this.parseDiffOutput(changesData));
+        const processOutput = Buffer.concat(chunks);
+        resolve(this.parseDiffOutput(processOutput));
       });
     });
   }
@@ -107,7 +107,8 @@ export class GitService {
       });
 
       gitBranchProcess.on("close", () => {
-        resolve(this.getAvailableBranchesFromBuffer(chunks));
+        const processOutput = Buffer.concat(chunks);
+        resolve(this.parseBranchOutput(processOutput));
       });
     });
   }
@@ -130,16 +131,15 @@ export class GitService {
       });
 
       gitBranchProcess.on("close", () => {
-        const processOutput = Buffer.concat(chunks).toString();
+        const processOutput = Buffer.concat(chunks);
         resolve(this.removeNewLineCharacter(processOutput));
       });
     });
   }
 
-  private parseDiffOutput(diffOutput: Buffer): DiffData {
+  private parseDiffOutput(processOutput: Buffer): DiffData {
     const diffOutputData: DiffData = { insertions: "0", deletions: "0" };
-
-    const splittedDiffOutput = diffOutput.toString().split(", ").slice(1);
+    const splittedDiffOutput = processOutput.toString().split(", ").slice(1);
 
     splittedDiffOutput.forEach((changesData) => {
       const splittedChangesData = changesData.split(" ");
@@ -152,8 +152,8 @@ export class GitService {
     return diffOutputData;
   }
 
-  private getAvailableBranchesFromBuffer(chunks: Buffer[]): string[] {
-    const branchesList = Buffer.concat(chunks).toString().split(/\r?\n/);
+  private parseBranchOutput(processOutput: Buffer): string[] {
+    const branchesList = processOutput.toString().split(/\r?\n/);
     const validBranches = branchesList.filter((branch) => branch);
 
     const currentBranchIndicator = /\*\s/; //Why it doesn't work with RegExp???????????????? it's so annoying
@@ -205,11 +205,11 @@ export class GitService {
     return diffExclusionParameters;
   }
 
-  private removeNewLineCharacter(output: string): string {
-    return output.slice(0, output.length - 1);
+  private removeNewLineCharacter(processOutput: Buffer): string {
+    return processOutput.toString().slice(0, processOutput.length - 1);
   }
 
-  private parseRevParseOutput(output: Buffer): boolean {
-    return output.toString().includes("true");
+  private parseRevParseOutput(processOutput: Buffer): boolean {
+    return processOutput.toString().includes("true");
   }
 }
