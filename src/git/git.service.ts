@@ -78,11 +78,6 @@ export class GitService {
         return;
       }
 
-      let changesData: DiffData = {
-        insertions: "0",
-        deletions: "0",
-      };
-
       const gitChildProcess = spawn(
         "git",
         ["diff", comparisonBranch, "--shortstat", ...this.diffExclusionParameters],
@@ -94,8 +89,9 @@ export class GitService {
 
       gitChildProcess.on("error", (err) => reject(err));
 
-      gitChildProcess.stdout.on("data", (data: Buffer) => {
-        changesData = this.parseDiffOutput(data);
+      let chunks: Buffer[] = [];
+      gitChildProcess.stdout.on("data", (chunk: Buffer) => {
+        chunks.push(chunk);
       });
 
       gitChildProcess.stderr.on("data", (data: Buffer) => {
@@ -103,7 +99,8 @@ export class GitService {
       });
 
       gitChildProcess.on("close", () => {
-        resolve(changesData);
+        const changesData = Buffer.concat(chunks);
+        resolve(this.parseDiffOutput(changesData));
       });
     });
   }
