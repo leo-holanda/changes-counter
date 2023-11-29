@@ -4,9 +4,9 @@
 [![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/LeonardoHolanda.changes-counter?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=LeonardoHolanda.changes-counter)
 [![GitHub](https://img.shields.io/github/license/leo-holanda/changes-counter?color=%230066b8&style=flat-square)](https://github.com/leo-holanda/changes-counter)
 
-> A VS Code extension that counts the number of changes between your git working tree and a comparison branch. Also, it warns you when you exceed a changes quantity threshold, helping you control the size of your pull requests and making them more easy to review.
+> A VS Code extension that helps developers control their pull requests size.
 
-![Changes Counter screenshot](https://i.imgur.com/NQHj04x.png)
+<img src="demo.gif" width="100%" alt="Changes Counter demo" />
 
 ## Contents
 
@@ -15,6 +15,7 @@
 - [Usage](#usage)
 - [Extension Settings](#extension-settings)
 - [Contributing](#contributing)
+- [Built with](#build-with)
 - [License](#license)
 
 ## Features
@@ -79,6 +80,11 @@ This extension contributes the following settings:
 ## Contributing
 
 Feel free to submit any issues or enhancement requests! I will do my best to fix or implement it. Already have a solution? Pull requests are also welcome!
+
+## Built with
+
+- TypeScript
+- Node.js
 
 ## License
 
