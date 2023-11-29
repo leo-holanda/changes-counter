@@ -15,7 +15,7 @@
 - [Usage](#usage)
 - [Extension Settings](#extension-settings)
 - [Contributing](#contributing)
-- [Built with](#build-with)
+- [Built with](#built-with)
 - [License](#license)
 
 ## Features
