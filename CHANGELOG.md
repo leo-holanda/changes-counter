@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Waiting for users feedback so I can improve the extesion.
 
+## [1.5.3] - 2024-02-22
+
+### Added
+
+- Toggable insertions and deletions data on status bar item
+
 ## [1.5.2] - 2023-11-29
 
 ### Changed

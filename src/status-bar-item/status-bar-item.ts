@@ -39,7 +39,18 @@ export class StatusBarItem {
   }
 
   private updateText(): void {
-    this.statusBarItem.text = "Changes: " + (this.changesData?.total || "?");
+    const config = vscode.workspace.getConfiguration("changesCounter");
+    const shouldShowInsertionsOnStatusBar = config.get<boolean>("showInsertionsOnStatusBar");
+    const shouldshowDeletionsOnStatusBar = config.get<boolean>("showDeletionsOnStatusBar");
+
+    const changesText = `Changes: ${this.changesData?.total || "?"}`;
+    const insertionsText = ` Ins: ${this.changesData?.insertions || "?"}`;
+    const deletionsText = ` Del: ${this.changesData?.deletions || "?"}`;
+
+    this.statusBarItem.text =
+      changesText +
+      (shouldShowInsertionsOnStatusBar ? insertionsText : "") +
+      (shouldshowDeletionsOnStatusBar ? deletionsText : "");
   }
 
   private shouldChangeColor(): boolean {

@@ -77,6 +77,10 @@ This extension contributes the following settings:
 
 - `changesCounter.disableNotifications`: Enable/disable the notification when you exceed the changes quantity threshold.
 
+- `changesCounter.showInsertionsOnStatusBar`: Enable/disable showing the insertions count on status bar.
+
+- `changesCounter.showDeletionsOnStatusBar`: Enable/disable showing the deletions count on status bar.
+
 ## Contributing
 
 Feel free to submit any issues or enhancement requests! I will do my best to fix or implement it. Already have a solution? Pull requests are also welcome!
