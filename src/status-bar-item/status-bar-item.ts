@@ -43,9 +43,16 @@ export class StatusBarItem {
     const shouldShowInsertionsOnStatusBar = config.get<boolean>("showInsertionsOnStatusBar");
     const shouldshowDeletionsOnStatusBar = config.get<boolean>("showDeletionsOnStatusBar");
 
+    const isInsertionsHigherThanZero = +(this.changesData?.insertions || 0) > 0;
+    const isDeletionsHigherThanZero = +(this.changesData?.deletions || 0) > 0;
+
     const changesText = `Changes: ${this.changesData?.total || "?"}`;
-    const insertionsText = ` Ins: ${this.changesData?.insertions || "?"}`;
-    const deletionsText = ` Del: ${this.changesData?.deletions || "?"}`;
+    const insertionsText = `    Ins: ${isInsertionsHigherThanZero ? "+" : ""}${
+      this.changesData?.insertions || "?"
+    }`;
+    const deletionsText = `    Del: ${isDeletionsHigherThanZero ? "-" : ""}${
+      this.changesData?.deletions || "?"
+    }`;
 
     this.statusBarItem.text =
       changesText +
