@@ -5,8 +5,11 @@ import { ChangesData } from "../changes/changes.interfaces";
 export class StatusBarItem {
   private changesData?: ChangesData;
   private context!: vscode.ExtensionContext;
-  private statusBarItem!: vscode.StatusBarItem;
   private changesService: ChangesService;
+
+  private changesStatusBarItem!: vscode.StatusBarItem;
+  private insertionsStatusBarItem!: vscode.StatusBarItem;
+  private deletionsStatusBarItem!: vscode.StatusBarItem;
 
   private static instance: StatusBarItem;
 
@@ -21,13 +24,40 @@ export class StatusBarItem {
   }
 
   async init(): Promise<void> {
-    this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 10);
-    this.context.subscriptions.push(this.statusBarItem);
+    this.changesStatusBarItem = vscode.window.createStatusBarItem(
+      vscode.StatusBarAlignment.Left,
+      10
+    );
+
+    this.insertionsStatusBarItem = vscode.window.createStatusBarItem(
+      vscode.StatusBarAlignment.Left,
+      10
+    );
+
+    this.deletionsStatusBarItem = vscode.window.createStatusBarItem(
+      vscode.StatusBarAlignment.Left,
+      9
+    );
+
+    this.context.subscriptions.push(this.changesStatusBarItem);
+    this.context.subscriptions.push(this.insertionsStatusBarItem);
+    this.context.subscriptions.push(this.deletionsStatusBarItem);
+
+    this.changesStatusBarItem.show();
+
     await this.updateStatusBarItemData();
-    this.statusBarItem.show();
   }
 
   async updateStatusBarItemData(): Promise<void> {
+    const config = vscode.workspace.getConfiguration("changesCounter");
+    const shouldShowInsertionsOnStatusBar = config.get<boolean>("showInsertionsOnStatusBar");
+    const shouldShowDeletionsOnStatusBar = config.get<boolean>("showDeletionsOnStatusBar");
+
+    if (shouldShowInsertionsOnStatusBar) this.insertionsStatusBarItem.show();
+    else this.insertionsStatusBarItem.hide();
+    if (shouldShowDeletionsOnStatusBar) this.deletionsStatusBarItem.show();
+    else this.deletionsStatusBarItem.hide();
+
     await this.updateChangesData();
     this.updateText();
     this.updateColor();
@@ -39,25 +69,20 @@ export class StatusBarItem {
   }
 
   private updateText(): void {
-    const config = vscode.workspace.getConfiguration("changesCounter");
-    const shouldShowInsertionsOnStatusBar = config.get<boolean>("showInsertionsOnStatusBar");
-    const shouldshowDeletionsOnStatusBar = config.get<boolean>("showDeletionsOnStatusBar");
-
     const isInsertionsHigherThanZero = +(this.changesData?.insertions || 0) > 0;
     const isDeletionsHigherThanZero = +(this.changesData?.deletions || 0) > 0;
 
     const changesText = `Changes: ${this.changesData?.total || "?"}`;
-    const insertionsText = `    Ins: ${isInsertionsHigherThanZero ? "+" : ""}${
+    const insertionsText = `Ins: ${isInsertionsHigherThanZero ? "+" : ""}${
       this.changesData?.insertions || "?"
     }`;
-    const deletionsText = `    Del: ${isDeletionsHigherThanZero ? "-" : ""}${
+    const deletionsText = `Del: ${isDeletionsHigherThanZero ? "-" : ""}${
       this.changesData?.deletions || "?"
     }`;
 
-    this.statusBarItem.text =
-      changesText +
-      (shouldShowInsertionsOnStatusBar ? insertionsText : "") +
-      (shouldshowDeletionsOnStatusBar ? deletionsText : "");
+    this.changesStatusBarItem.text = changesText;
+    this.insertionsStatusBarItem.text = insertionsText;
+    this.deletionsStatusBarItem.text = deletionsText;
   }
 
   private shouldChangeColor(): boolean {
@@ -67,13 +92,25 @@ export class StatusBarItem {
   }
 
   private updateColor(): void {
-    if (this.shouldChangeColor())
-      this.statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
-    else this.statusBarItem.backgroundColor = undefined;
+    const isInsertionsHigherThanZero = +(this.changesData?.insertions || 0) > 0;
+    const isDeletionsHigherThanZero = +(this.changesData?.deletions || 0) > 0;
+
+    if (isInsertionsHigherThanZero) this.insertionsStatusBarItem.color = "#3fb950";
+    else this.insertionsStatusBarItem.color = undefined;
+    if (isDeletionsHigherThanZero) this.deletionsStatusBarItem.color = "#f85149";
+    else this.deletionsStatusBarItem.color = undefined;
+
+    if (this.shouldChangeColor()) {
+      this.changesStatusBarItem.backgroundColor = new vscode.ThemeColor(
+        "statusBarItem.warningBackground"
+      );
+    } else {
+      this.changesStatusBarItem.backgroundColor = undefined;
+    }
   }
 
   private updateTooltip(): void {
-    this.statusBarItem.tooltip = this.getTooltipString();
+    this.changesStatusBarItem.tooltip = this.getTooltipString();
   }
 
   private getTooltipString(): vscode.MarkdownString {
